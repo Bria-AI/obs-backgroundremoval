@@ -22,9 +22,14 @@
       "default-features": false,
       "features": [
         "jpeg",
-        "png",
-        "tiff",
-        "webp"
+        "png"
+      ]
+    },
+    {
+      "name": "ixwebsocket",
+      "default-features": false,
+      "features": [
+        "ssl"
       ]
     }
   ]

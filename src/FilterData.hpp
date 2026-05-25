@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 
 #include "models/Model.hpp"
 #include "ort-utils/ORTModelData.hpp"

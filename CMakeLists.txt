@@ -174,7 +174,16 @@ if(NOT TARGET OpenCV::opencv_imgproc)
   add_library(OpenCV::opencv_imgproc ALIAS opencv_imgproc)
 endif()
 
-## ONNX Runtime
+## libjpeg-turbo (JPEG encode/decode for Bria frames — avoids opencv_imgcodecs)
+find_package(JPEG REQUIRED)
+
+## mbedTLS (AES-256-CBC + SHA256 for Bria SSO token decryption)
+find_package(MbedTLS CONFIG REQUIRED)
+
+## ixwebsocket (Bria streaming RMBG)
+find_package(ixwebsocket CONFIG REQUIRED)
+
+## ONNX Runtime (Background Removal + Enhance Portrait)
 find_package(onnxruntime CONFIG)
 
 if(NOT onnxruntime_FOUND AND PkgConfig_FOUND)
@@ -199,7 +208,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE onnxruntime::onnxruntime)
 add_subdirectory(src/update-checker/CurlClient)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE CurlClient OpenCV::opencv_core OpenCV::opencv_imgproc)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE
+    CurlClient
+    OpenCV::opencv_core
+    OpenCV::opencv_imgproc
+    JPEG::JPEG
+    ixwebsocket::ixwebsocket
+    MbedTLS::mbedcrypto
+)
 
 target_sources(
   ${CMAKE_PROJECT_NAME}
@@ -212,8 +230,13 @@ target_sources(
     src/update-checker/update-checker.cpp
     src/background-filter-info.c
     src/background-filter.cpp
+    src/bria-utils/bria-frame-protocol.cpp
+    src/bria-utils/bria-rmbg-client.cpp
+    src/bria-utils/bria-auth-client.cpp
     src/enhance-filter.cpp
     src/enhance-filter-info.c
+    src/bria-filter.cpp
+    src/bria-filter-info.c
 )
 target_compile_options(
   ${CMAKE_PROJECT_NAME}
@@ -226,7 +249,14 @@ if(APPLE)
     PRIVATE "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/src/exported_symbols_macos.txt"
   )
 elseif(MSVC)
-  target_sources(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/exported_symbols_windows.def")
+  target_sources(
+    ${CMAKE_PROJECT_NAME}
+    PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/exported_symbols_windows.def"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/msvc-stl-compat.cpp"
+  )
+  # bcrypt: required by mbedcrypto (ixwebsocket TLS) for BCryptGenRandom
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE bcrypt)
 else()
   target_link_options(
     ${CMAKE_PROJECT_NAME}
