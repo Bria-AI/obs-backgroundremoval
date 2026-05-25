@@ -212,6 +212,7 @@ target_link_libraries(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
     CurlClient
+    CURL::libcurl
     OpenCV::opencv_core
     OpenCV::opencv_imgproc
     JPEG::JPEG

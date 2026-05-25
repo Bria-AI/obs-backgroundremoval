@@ -4,33 +4,25 @@
     {
       "name": "curl",
       "default-features": false,
-      "features": [
-        "ssl"
-      ],
+      "features": ["ssl"],
       "platform": "(windows & !uwp) | mingw"
     },
     {
       "name": "curl",
       "default-features": false,
-      "features": [
-        "wolfssl"
-      ],
+      "features": ["wolfssl"],
       "platform": "(uwp | !windows) & !mingw"
     },
     {
       "name": "opencv4",
       "default-features": false,
-      "features": [
-        "jpeg",
-        "png"
-      ]
+      "features": ["jpeg", "png"]
     },
     {
       "name": "ixwebsocket",
       "default-features": false,
-      "features": [
-        "ssl"
-      ]
-    }
+      "features": ["ssl"]
+    },
+    "mbedtls"
   ]
 }
