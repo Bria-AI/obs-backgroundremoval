@@ -1,108 +1,90 @@
-# OBS Plugin: Portrait Background Removal / Virtual Green-screen and Low-Light Enhancement
+<!--
+SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 
-<div align="center">
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
 
-[![GitHub](https://img.shields.io/github/license/royshil/obs-backgroundremoval)](https://github.com/royshil/obs-backgroundremoval/blob/main/LICENSE)
-[![GitHub Workflow Status](https://github.com/royshil/obs-backgroundremoval/actions/workflows/push.yaml/badge.svg)](https://github.com/royshil/obs-backgroundremoval/actions/workflows/push.yaml)
-[![Total downloads](https://img.shields.io/github/downloads/royshil/obs-backgroundremoval/total)](https://github.com/royshil/obs-backgroundremoval/releases)
-![Flathub](https://img.shields.io/flathub/downloads/com.obsproject.Studio.Plugin.BackgroundRemoval?label=Flathub%20Installs)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/royshil/obs-backgroundremoval)](https://github.com/royshil/obs-backgroundremoval/releases)
+# Bria V-RMBG 3.0 - OBS Background Removal Plugin
 
-</div>
-
-A plugin for [OBS Studio](https://obsproject.com/) that allows you to replace the background in portrait images and video, as well as enhance low-light scenes.
-
-<p align="center">
-  <a href="https://royshil.github.io/obs-backgroundremoval/">
-    <b>⬇️ Download & Install OBS Background Removal ⬇️</b>
-  </a>
-</p>
-
-Or, browse versions on [releases page](https://github.com/royshil/obs-backgroundremoval/releases).
-
-> Not working? Please try [the Lite version (Live Background Removal Lite)](https://github.com/kaito-tokyo/live-backgroundremoval-lite) developed by one of us (Kaito Udagawa).
-
-## Usage
-
-<div style="text-align:center;">
-<video src="https://github.com/royshil/obs-backgroundremoval/assets/1067855/5ba5aae2-7ea2-4c90-ad45-fba5ccde1a4e" width="320"></video>
-</div>
-
-Check out the [usage guide page](https://royshil.github.io/obs-backgroundremoval/usage/) for usage walkthrough and recommendations.
-
-Additional tutorial videos:
-
-- [▶︎ Official guide to the Background Removal plugin for OBS Studio on YouTube](https://www.youtube.com/playlist?list=PLfd4SnaQQz_DVr_18OQozucYmiC56rRhy)
-- Depth of Field effect: https://youtu.be/jC3EKSpNjQk
-- Low-light enhancement: https://youtu.be/WSBLYWFrn2Q
-- Remove background from ANY object (not just human): https://youtu.be/N74VCDCToX8
-
-## Introduction
-
-This plugin is meant to make it easy to replace the background in portrait images and video.
-It is using a neural network to predict the mask of the portrait and remove the background pixels.
-It's easily composable with other OBS plugins to replace the background with e.g. an image or
-a transparent color.
-
-If you like this work, which is given to you completely free of charge, please consider supporting it by sponsoring us on GitHub:
-
-- https://github.com/sponsors/royshil
-- https://github.com/sponsors/umireon
-
-### Support and Help
-
-Reach out to us on [GitHub Discussions](https://github.com/royshil/obs-backgroundremoval/discussions) or the [OBS Plugins forum](https://obsproject.com/forum/resources/background-removal-portrait-segmentation.1260/) for online / immediate help.
-
-If you found a bug or want to suggest a feature or improvement please open an [issue](https://github.com/royshil/obs-backgroundremoval/issues).
-
-If you are looking for hands-on help or private consultation please select a [sponsorship tier](https://github.com/sponsors/royshil?frequency=one-time).
-
-### Technical Details
-
-GPU support:
-
-- On Windows, we plan to support WinML acceleration.
-- On Mac we support CoreML for acceleration, which is efficient on Apple Silicon. **Note:** This plugin does not support cross-architecture translation (Rosetta2). Intel binaries on Apple Silicon or Apple Silicon binaries on Intel will crash.
-- On Linux CUDA, ROCM (deprecated in ONNX Runtime 1.23.0), and MIGraphX are supported if this plugin is built from source. Ensure your ONNX Runtime installation has CUDA, ROCM, or MIGraphX support. For AMD GPUs, MIGraphX is recommended as ROCM was removed from ONNX Runtime starting with version 1.23.0.
-- The goal of this plugin is to be available for everyone on every system, even if they don't own a GPU.
-
-Number of CPU threads is controllable through the UI settings. A 2-thread setting works best.
-
-The pretrained model weights used for portrait foreground segmentation are taken from:
-
-- https://github.com/anilsathyan7/Portrait-Segmentation/tree/master/SINet
-- https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.7/contrib/PP-HumanSeg
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/082_MediaPipe_Meet_Segmentation
-- https://github.com/PeterL1n/RobustVideoMatting
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/384_TCMonoDepth and https://github.com/yu-li/TCMonoDepth
-
-Image enhancement (low light) models are taken from:
-
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/213_TBEFN
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/372_URetinex-Net
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/370_Semantic-Guided-Low-Light-Image-Enhancement
-
-Some more information about how I built it: https://www.morethantechnical.com/2021/04/15/obs-plugin-for-portrait-background-removal-with-onnx-sinet-model/ and https://www.morethantechnical.com/2023/05/20/building-an-obs-background-removal-plugin-a-walkthrough/
-
-### Code Walkthrough
-
-This video on YouTube will take you through the major parts of the code and explain them.
-
-<div align="center">
-  <a href="https://youtu.be/iFQtcJg0Wsk" target="_blank">
-    <img width="50%" src="https://img.youtube.com/vi/iFQtcJg0Wsk/maxresdefault.jpg"/>
-  </a>
-</div>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=royshil/obs-backgroundremoval&type=Date&theme=dark" />
-  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=royshil/obs-backgroundremoval&type=Date" />
-  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=royshil/obs-backgroundremoval&type=Date" />
-</picture>
+> Real-time AI background removal for OBS Studio
 
 ---
 
-> SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>  
-> SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>  
->
-> SPDX-License-Identifier: GPL-3.0-or-later  
+## Overview
+
+The **Bria V-RMBG 3.0 OBS Plugin** adds a native Effect Filter to OBS Studio that removes your video background in real time using Bria's V-RMBG 3.0 model. Your webcam frames are streamed to Bria's inference endpoint, returned background-removed, and rendered directly into your OBS scene - no green screen, no local GPU processing required.
+
+This plugin is built on Bria's commercially licensed AI models, making it safe for any stream, broadcast, or commercial production.
+
+**Key features:**
+
+- 🎥 **Real-time background removal** - live video processed frame-by-frame via Bria's streaming endpoint
+- ✨ **Non-binary alpha edges** - soft, natural cutouts instead of hard masks; hair and fine details blend smoothly
+- 🎛️ **Native OBS filter** - integrates as a standard Effect Filter on any camera source
+
+---
+
+## Requirements
+
+| Requirement         | Details                                                                         |
+| ------------------- | ------------------------------------------------------------------------------- |
+| OBS Studio          | 31.0 or later - [download here](https://obsproject.com/download)                |
+| Bria account        | Required for authentication - [create one here](https://platform.bria.ai/login) |
+| Operating system    | Windows 10/11 (x64) · macOS 12+ (arm64 and x86_64)                              |
+| Internet connection | Required - frames are processed in Bria's cloud in real time                    |
+
+---
+
+## Installation
+
+### Windows
+
+1. Download the `.zip` from the [Releases page](https://github.com/bria-ai/obs-background-removal/releases).
+2. Extract the ZIP and locate the `obs-backgroundremoval` folder inside.
+3. Copy it into `C:\ProgramData\obs-studio\plugins\` (create the `plugins` folder if it doesn't exist).
+4. Restart OBS Studio.
+
+> **Updating from a previous version?** The ZIP includes `remove-old-installation.bat`. Right-click → Run as administrator before copying the new files.
+
+### macOS
+
+1. Download `obs-backgroundremoval-3.0-macos-universal.pkg` from the [Releases page](https://github.com/bria-ai/obs-background-removal/releases).
+2. Open the `.pkg` file and follow the installer steps.
+3. Restart OBS Studio.
+
+---
+
+## Getting Started
+
+### 1. Add your camera source
+
+1. In the **Sources** panel, click **+** and choose **Video Capture Device**.
+2. Name it, click **OK**, select your webcam, and click **OK** again.
+
+### 2. Apply the Bria background removal filter
+
+1. Right-click your camera source → **Filters**.
+2. In the Filters window, click **+** under **Effect Filters**.
+3. Choose **Bria – Remove Background** from the list.
+4. Click **OK**.
+
+### 3. Sign in to Bria (one time only)
+
+1. In the filter panel, click **Sign in with Bria**.
+2. Your browser opens - complete the login at [platform.bria.ai/login](https://platform.bria.ai/login).
+3. Return to OBS. The status updates to **"Signed in as [your email]."**
+4. Your camera now appears with the background removed. ✅
+
+> Don't have a Bria account yet? [Create one here](https://platform.bria.ai/login) - it only takes a minute.
+
+---
+
+## Reporting Issues
+
+Please open an issue on the [GitHub issue tracker](https://github.com/bria-ai/obs-background-removal/issues). Include your OBS version, OS, and a description of the problem.
+
+## License
+
+Based on [obs-backgroundremoval](https://github.com/royshil/obs-backgroundremoval) by
+Roy Shilkrot. Modifications Copyright (C) 2026 Bria AI. Licensed under
+[GPL-3.0-or-later](LICENSE). See [NOTICE.md](NOTICE.md) for attribution details.

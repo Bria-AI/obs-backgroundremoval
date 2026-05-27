@@ -1,138 +1,90 @@
-# SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
-# SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 
 name: Bug Report
-description: Report a bug or crash
-labels: bug
-assignees: umireon
+description: Report a bug or unexpected behavior
+labels: ["bug"]
 body:
   - type: markdown
-    id: md_welcome
     attributes:
       value: |
-        ## 🐞 Bug Report for OBS Background Removal
-
-        Please fill out **all required fields**. Incomplete reports may be closed without investigation.
-        - Attach an OBS log file (see below).
-        - For crashes, attach a crash log if available.
-        - Check existing issues before submitting a new one.
-
-        **Note:** Developers are human too—please be polite and respectful in your communication.
-        Also, please understand that development time and resources are limited.
-
-  - type: dropdown
-    id: os_info
-    attributes:
-      label: Operating System
-      description: Which operating system are you using?
-      options:
-        - Windows 11
-        - Windows 10
-        - macOS 26
-        - macOS 15
-        - macOS 14
-        - macOS 13
-        - macOS 12
-        - macOS 11
-        - Ubuntu 24.04
-        - Arch Linux
-        - Other (please specify below)
-    validations:
-      required: true
-
-  - type: input
-    id: os_info_other
-    attributes:
-      label: Other OS (if not listed above)
-      description: Specify your OS if you selected "Other".
-      placeholder: "e.g., Fedora 39, FreeBSD 13.2"
-    validations:
-      required: false
-
-  - type: input
-    id: plugin_version
-    attributes:
-      label: Plugin Version
-      description: What version of OBS Background Removal are you using?
-      placeholder: "e.g., 1.0.0, 1.0.0-beta1, git-abcdef"
-    validations:
-      required: true
-
-  - type: input
-    id: obs_version
-    attributes:
-      label: OBS Studio Version
-      description: Which version of OBS Studio are you using? (e.g., 32.0.2, 33.0.0-beta1, git-abcdef)
-      placeholder: "e.g., 32.0.2, 33.0.0-beta1, git-abcdef"
-    validations:
-      required: true
-
-  - type: input
-    id: obs_log_url
-    attributes:
-      label: OBS Studio Log URL
-      description: |
-        Please provide the obsproject.com URL to the OBS log file where this issue occurred.
-        **Bug reports without a log file will be closed.**
-        (Help menu > Log Files > Upload Current/Previous Log File)
-      placeholder: "https://obsproject.com/logs/xxxxxxx"
-    validations:
-      required: true
-
-  - type: input
-    id: obs_crash_log_url
-    attributes:
-      label: OBS Studio Crash Log URL (if applicable)
-      description: If this is a crash report, provide the obsproject.com URL to the crash log file.
-      placeholder: "https://obsproject.com/logs/xxxxxxx"
-    validations:
-      required: false
+        Thanks for taking the time to report a bug! Please fill out the form below.
 
   - type: textarea
-    id: expected_behavior
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Install package with '...'
+        2. Call function '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
     attributes:
       label: Expected Behavior
       description: What did you expect to happen?
-      placeholder: "Describe what should have happened."
+      placeholder: Describe what you expected...
     validations:
       required: true
 
   - type: textarea
-    id: current_behavior
+    id: actual
     attributes:
       label: Actual Behavior
       description: What actually happened?
-      placeholder: "Describe what actually happened, including error messages if any."
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+      placeholder: "3.11"
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Package Version
+      description: What version of bria-client are you using?
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other
     validations:
       required: true
 
   - type: textarea
-    id: steps_to_reproduce
+    id: additional
     attributes:
-      label: Steps to Reproduce
-      description: How can we reproduce this bug? Please provide step-by-step instructions.
-      placeholder: |
-        1. ...
-        2. ...
-        3. ...
-    validations:
-      required: true
-
-  - type: textarea
-    id: additional_notes
-    attributes:
-      label: Additional Notes / Screenshots
-      description: Add any other context, screenshots, or information that might help us understand the issue.
+      label: Additional Context
+      description: Add any other context about the problem here.
+      placeholder: Any additional information...
     validations:
       required: false
-
-  - type: checkboxes
-    id: confirm_log
-    attributes:
-      label: Confirmation
-      description: Please confirm the following before submitting.
-      options:
-        - label: I have attached the required OBS log file(s).
-          required: true

@@ -1,6 +1,6 @@
 /*
- * SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
- * SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+ *
+ * SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -18,6 +18,7 @@ extern "C" {
 
 extern const char *PLUGIN_NAME;
 extern const char *PLUGIN_VERSION;
+extern const char *PLUGIN_USER_AGENT;
 
 void obs_log(int log_level, const char *format, ...);
 

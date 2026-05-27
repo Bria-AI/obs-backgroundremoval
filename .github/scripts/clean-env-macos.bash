@@ -1,9 +1,8 @@
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 # file: .github/scripts/clean-env-macos.bash
-# author: Kaito Udagawa <umireon@kaito.tokyo>
 # version: 1.0.2
 # date: 2026-04-02
 

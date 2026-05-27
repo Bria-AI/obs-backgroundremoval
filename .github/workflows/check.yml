@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -9,7 +9,6 @@ on:
     branches: [main]
   push:
     branches: [main]
-    tags: ["*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -53,18 +52,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install gersemi with Linuxbrew
-        shell: bash
-        env:
-          HOMEBREW_NO_ANALYTICS: "1"
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_ENV_HINTS: "1"
-          HOMEBREW_NO_INSTALL_CLEANUP: "1"
-        run: |
-          set -euo pipefail
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew install obsproject/tools/gersemi
-          echo "$(brew --prefix obsproject/tools/gersemi)/bin" >> "$GITHUB_PATH"
+      - name: Install gersemi
+        run: pip install gersemi==0.27.7
 
       - name: Check with gersemi
         shell: bash

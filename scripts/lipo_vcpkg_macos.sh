@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# SPDX-FileCopyrightText: 2025-2026 Kaito Udagawa <umireon@kaito.tokyo>
+
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 # file: scripts/lipo_vcpkg_macos.sh
 # description: Combines vcpkg_installed directories into a universal one.
-# author: Kaito Udagawa <umireon@kaito.tokyo>
 # version: 1.0.1
 # date: 2026-04-02
 

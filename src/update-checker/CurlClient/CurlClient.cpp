@@ -1,5 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
-// SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -11,7 +10,7 @@
 #include <obs.h>
 #include <plugin-support.h>
 
-const std::string userAgent = std::string(PLUGIN_NAME) + "/" + PLUGIN_VERSION;
+const char *userAgent = PLUGIN_USER_AGENT;
 
 static std::size_t writeFunc(void *ptr, std::size_t size, size_t nmemb, std::string *data)
 {
@@ -30,7 +29,7 @@ void fetchStringFromUrl(const char *urlString, std::function<void(std::string, i
 
 	std::string responseBody;
 	curl_easy_setopt(curl, CURLOPT_URL, urlString);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunc);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBody);
 
