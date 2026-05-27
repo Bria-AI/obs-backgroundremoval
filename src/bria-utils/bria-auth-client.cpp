@@ -551,9 +551,13 @@ void BriaAuthClient::openSystemBrowser(const std::string &url)
 	MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, wurl.data(), wlen);
 	ShellExecuteW(nullptr, L"open", wurl.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #elif defined(__APPLE__)
-	system(("open '" + url + "'").c_str());
+	const int ret = system(("open '" + url + "'").c_str());
+	if (ret != 0)
+		obs_log(LOG_WARNING, "Bria SSO: failed to open browser (ret=%d)", ret);
 #else
-	system(("xdg-open '" + url + "' &").c_str());
+	const int ret = system(("xdg-open '" + url + "' &").c_str());
+	if (ret != 0)
+		obs_log(LOG_WARNING, "Bria SSO: failed to open browser (ret=%d)", ret);
 #endif
 }
 
