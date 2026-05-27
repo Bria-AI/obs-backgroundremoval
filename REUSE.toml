@@ -12,10 +12,13 @@ path = [
     ".github/workflows/*.lock.yml",
     ".gitignore",
     ".python-version",
+    ".release-please-manifest.json",
     "buildspec.json",
+    "CHANGELOG.md",
     "CMakePresets.json",
     "data/config.json",
     "data/manifest.json",
+    "release-please-config.json",
     "requirements-build.txt",
     "scripts/windows/*",
     "src/exported_symbols_linux.map",
@@ -27,9 +30,12 @@ path = [
 ]
 SPDX-FileCopyrightText = [
     "2018-2026 OBS Project and its contributors",
-    "2021-2026 Roy Shilkrot <roy.shil@gmail.com>",
-    "2023-2026 Kaito Udagawa <umireon@kaito.tokyo>",
 ]
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = "NOTICE.md"
+SPDX-FileCopyrightText = "2026 Bria AI <support@bria.ai>"
 SPDX-License-Identifier = "CC0-1.0"
 
 # Locale files (reuse tool has some bug around reading not-ASCII files)
@@ -38,7 +44,5 @@ path = [
     "data/locale/*.ini"
 ]
 SPDX-FileCopyrightText = [
-    "2021-2026 Roy Shilkrot <roy.shil@gmail.com>",
-    "2023-2026 Kaito Udagawa <umireon@kaito.tokyo>",
 ]
 SPDX-License-Identifier = "CC0-1.0"
