@@ -120,7 +120,7 @@ obs_properties_t *bria_filter_properties(void *data)
 	// All auth buttons always present; visibility controlled by bria_auth_update_ui
 	obs_properties_add_button(props, "btn_sign_in", obs_module_text("BriaSignIn"), bria_filter_sign_in_clicked);
 	obs_properties_add_button(props, "btn_refresh_status", obs_module_text("BriaRefreshStatus"),
-				  [](obs_properties_t *p2, obs_property_t *prop, void *d) -> bool {
+				  [](obs_properties_t *p2, obs_property_t *prop, void *) -> bool {
 					  return bria_auth_update_ui(p2, prop, nullptr);
 				  });
 	obs_properties_add_button(props, "btn_sign_out", obs_module_text("BriaSignOut"), bria_filter_sign_out_clicked);
