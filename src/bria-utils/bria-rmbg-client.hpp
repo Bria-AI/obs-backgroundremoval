@@ -28,7 +28,8 @@ public:
 	bool isConnected() const;
 	void setMaskCallback(MaskCallback callback);
 
-	bool submitFrame(const cv::Mat &imageBGRA, int jpegQuality);
+	// Returns the assigned frameId on success, or UINT64_MAX when throttled/disconnected.
+	uint64_t submitFrame(const cv::Mat &imageBGRA, int jpegQuality);
 
 private:
 	struct PendingFrame {

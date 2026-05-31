@@ -196,22 +196,22 @@ bool BriaRmbgClient::canSend() const
 	return isConnected() && inFlightCount_.load() < maxInFlight_.load();
 }
 
-bool BriaRmbgClient::submitFrame(const cv::Mat &imageBGRA, int jpegQuality)
+uint64_t BriaRmbgClient::submitFrame(const cv::Mat &imageBGRA, int jpegQuality)
 {
 	if (!connected_.load() || imageBGRA.empty()) {
-		return false;
+		return UINT64_MAX;
 	}
 
 	purgeStalePendingFrames();
 
 	if (!canSend()) {
-		return false;
+		return UINT64_MAX;
 	}
 
 	const std::vector<uint8_t> jpegData = encodeFrameAsJpeg(imageBGRA, jpegQuality);
 	if (jpegData.empty()) {
 		obs_log(LOG_WARNING, "Failed to encode frame as JPEG for Bria API");
-		return false;
+		return UINT64_MAX;
 	}
 
 	const uint64_t frameId = nextFrameId_.fetch_add(1);
@@ -226,7 +226,7 @@ bool BriaRmbgClient::submitFrame(const cv::Mat &imageBGRA, int jpegQuality)
 
 	inFlightCount_.fetch_add(1);
 	webSocket_.sendBinary(std::string(reinterpret_cast<const char *>(packet.data()), packet.size()));
-	return true;
+	return frameId;
 }
 
 void BriaRmbgClient::handleMessage(const ix::WebSocketMessagePtr &msg)

@@ -354,12 +354,9 @@ void bria_filter_video_tick(void *data, float seconds)
 				cv::Mat foreground = tf->pendingForegroundMask.clone();
 				tf->pendingMaskReady = false;
 
-				// Convert grayscale foreground mask → background mask
-				// Bria: bright = foreground → we invert for the effect shader
-				cv::Mat backgroundMask;
 				const uint8_t threshold_value =
 					static_cast<uint8_t>(BRIA_MASK_THRESHOLD * 255.0f);
-				backgroundMask = foreground <= threshold_value;
+				cv::Mat backgroundMask = foreground <= threshold_value;
 
 				if (backgroundMask.size() != imageBGRA.size()) {
 					cv::resize(backgroundMask, backgroundMask, imageBGRA.size());

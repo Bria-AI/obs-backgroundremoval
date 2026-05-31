@@ -238,6 +238,8 @@ target_sources(
     src/enhance-filter-info.c
     src/bria-filter.cpp
     src/bria-filter-info.c
+    src/bria-source.cpp
+    src/bria-source-info.c
 )
 target_compile_options(
   ${CMAKE_PROJECT_NAME}

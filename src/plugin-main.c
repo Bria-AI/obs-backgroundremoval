@@ -17,12 +17,14 @@ OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 extern struct obs_source_info background_removal_filter_info;
 extern struct obs_source_info enhance_filter_info;
 extern struct obs_source_info bria_filter_info;
+extern struct obs_source_info bria_source_info;
 
 bool obs_module_load(void)
 {
 	obs_register_source(&background_removal_filter_info);
 	obs_register_source(&enhance_filter_info);
 	obs_register_source(&bria_filter_info);
+	obs_register_source(&bria_source_info);
 	obs_log(LOG_INFO, "Plugin loaded successfully (version %s)", PLUGIN_VERSION);
 
 	check_update();
