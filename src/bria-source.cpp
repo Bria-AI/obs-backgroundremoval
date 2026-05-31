@@ -200,6 +200,7 @@ static cv::Mat obsFrameToBGRA(const struct obs_source_frame *frame)
 
 static bool bria_source_sign_in_clicked(obs_properties_t *props, obs_property_t *p, void *data)
 {
+	UNUSED_PARAMETER(p);
 	UNUSED_PARAMETER(data);
 	BriaAuthClient::instance().startLoginFlow();
 
