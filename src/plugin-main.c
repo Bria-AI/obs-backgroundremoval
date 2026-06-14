@@ -34,7 +34,7 @@ static void on_obs_frontend_loaded(enum obs_frontend_event event, void *private_
 	// Only fire once per OBS session.
 	obs_frontend_remove_event_callback(on_obs_frontend_loaded, NULL);
 
-	config_t *config = obs_frontend_get_global_config();
+	config_t *config = obs_frontend_get_app_config();
 	if (!config)
 		return;
 
