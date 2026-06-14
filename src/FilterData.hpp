@@ -11,16 +11,22 @@
 #include <opencv2/core.hpp>
 
 #include <atomic>
+#include <memory>
 #include <mutex>
+#include <string>
+
+#include "models/Model.hpp"
+#include "ort-utils/ORTModelData.hpp"
 
 /**
-  * @brief Shared GPU capture/render state for video filters (Bria-only build).
+  * @brief Shared base for all video filter structs.
   *
-  * To re-enable ORT filters (Background Removal + Enhance Portrait), restore
-  * this file to include models/Model.hpp + ort-utils/ORTModelData.hpp and
-  * have filter_data inherit from ORTModelData.
+  * Inherits ORTModelData for ONNX Runtime session state (session, tensors,
+  * input/output names/dims) used by the ORT-based background-removal and
+  * enhance-portrait filters.  The Bria streaming filter inherits this struct
+  * for the shared GPU capture state but does not use the ORT members.
   */
-struct filter_data {
+struct filter_data : public ORTModelData {
 	obs_source_t *source = nullptr;
 	gs_texrender_t *texrender = nullptr;
 	gs_stagesurf_t *stagesurface = nullptr;
@@ -31,6 +37,16 @@ struct filter_data {
 
 	std::mutex inputBGRALock;
 	std::mutex outputLock;
+
+	std::unique_ptr<Model> model;
+	std::string useGPU;
+	uint32_t numThreads = 1;
+	std::string modelSelection;
+#ifdef _WIN32
+	std::wstring modelFilepath;
+#else
+	std::string modelFilepath;
+#endif
 };
 
 #endif /* FILTERDATA_H */
