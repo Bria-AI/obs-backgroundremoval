@@ -1,0 +1,53 @@
+// SPDX-FileCopyrightText: 2023-2026 Bria AI
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Effect used exclusively by the Bria Remove Background filter.
+// The filter performs CPU compositing (frameId-matched) and produces a BGRA
+// texture where background pixels are already transparent (alpha = 0) and
+// foreground pixels are fully opaque.  This technique simply uploads that
+// pre-composited texture to the GPU and outputs it with premultiplied alpha
+// so it blends correctly with OBS's default ONE / ONE_MINUS_SRC_ALPHA state.
+
+uniform float4x4 ViewProj;
+uniform texture2d precomposited; // CPU-composited BGRA — background already zeroed
+
+sampler_state textureSampler {
+	Filter    = Linear;
+	AddressU  = Clamp;
+	AddressV  = Clamp;
+};
+
+struct VertDataIn {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+struct VertDataOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertDataOut VSDefault(VertDataIn v_in)
+{
+	VertDataOut vert_out;
+	vert_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = v_in.uv;
+	return vert_out;
+}
+
+float4 PSPrecomposited(VertDataOut v_in) : TARGET
+{
+	float4 rgba = precomposited.Sample(textureSampler, v_in.uv);
+	rgba.rgb *= rgba.a; // premultiply to match OBS blend state
+	return rgba;
+}
+
+technique DrawPrecomposited
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSPrecomposited(v_in);
+	}
+}

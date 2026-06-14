@@ -6,10 +6,13 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include <cmath>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
+#include <util/platform.h>
 #include <plugin-support.h>
 #include "obs-utils/obs-utils.hpp"
 #include "consts.h"
@@ -22,7 +25,6 @@
 // ---------------------------------------------------------------------------
 
 static constexpr int BRIA_JPEG_QUALITY = 60;
-static constexpr float BRIA_MASK_THRESHOLD = 0.5f;
 
 // ---------------------------------------------------------------------------
 // Filter data struct
@@ -31,8 +33,6 @@ static constexpr float BRIA_MASK_THRESHOLD = 0.5f;
 struct bria_removal_filter : public filter_data, public std::enable_shared_from_this<bria_removal_filter> {
 	bool stopWhenSourceIsInactive = true;
 
-	cv::Mat backgroundMask;
-
 	gs_effect_t *effect = nullptr;
 
 	std::unique_ptr<BriaRmbgClient> briaClient;
@@ -40,9 +40,16 @@ struct bria_removal_filter : public filter_data, public std::enable_shared_from_
 	BriaAuthClient::CallbackHandle authCallbackHandle{0};
 	bool authCallbackRegistered{false};
 
-	cv::Mat pendingForegroundMask;
-	std::mutex pendingMaskMutex;
-	bool pendingMaskReady = false;
+	// Frame buffer: frameId → BGRA pixels captured at submission time.
+	// The mask callback looks up the matching frame so compositing is always
+	// temporally synchronised (same approach as bria-source.cpp).
+	std::unordered_map<uint64_t, cv::Mat> frameBuffer;
+	std::mutex frameBufferMutex;
+	static constexpr size_t MAX_BUFFERED_FRAMES = 32;
+
+	// CPU-composited BGRA output (background zeroed out).  Updated by the
+	// mask callback; read by video_render under outputLock.
+	cv::Mat compositedBGRA;
 
 	std::mutex clientMutex;
 
@@ -86,6 +93,11 @@ static bool bria_auth_update_ui(obs_properties_t *props, obs_property_t * /*p*/,
 		} else {
 			text = obs_module_text("BriaNotSignedIn");
 		}
+		// Append the report-issue link on the same row as the auth status.
+		// OBS sets setOpenExternalLinks(true) on OBS_TEXT_INFO labels, so the
+		// anchor tag is rendered as a real clickable link — no callback needed.
+		text += "  &nbsp;&nbsp;<a href='https://github.com/Bria-AI/obs-backgroundremoval/issues'>"
+			"Report an issue</a>";
 		obs_property_set_description(status, text.c_str());
 	}
 
@@ -165,11 +177,89 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		tf->briaClient = std::make_unique<BriaRmbgClient>();
 	}
 
+	// When the WebSocket drops (e.g. 1013 capacity-exceeded) clear the
+	// composited output and the frame buffer so the "Connecting…" overlay
+	// reappears immediately.  On reconnect the overlay disappears as soon as
+	// the first mask arrives — no extra action needed.
+	tf->briaClient->setConnectionCallback([tf](bool connected) {
+		if (!connected) {
+			{
+				std::lock_guard<std::mutex> outLock(tf->outputLock);
+				tf->compositedBGRA.release();
+			}
+			{
+				std::lock_guard<std::mutex> bufLock(tf->frameBufferMutex);
+				tf->frameBuffer.clear();
+			}
+			obs_log(LOG_INFO, "Bria removal filter: connection lost — showing Connecting overlay");
+		} else {
+			obs_log(LOG_INFO, "Bria removal filter: reconnected — resuming background removal");
+		}
+	});
+
 	tf->briaClient->setMaskCallback([tf](cv::Mat foregroundMask, uint64_t frameId) {
-		UNUSED_PARAMETER(frameId);
-		std::lock_guard<std::mutex> lock(tf->pendingMaskMutex);
-		tf->pendingForegroundMask = std::move(foregroundMask);
-		tf->pendingMaskReady = true;
+		// Retrieve the source frame that was submitted with this frameId.
+		cv::Mat matchedBGRA;
+		{
+			std::lock_guard<std::mutex> bufLock(tf->frameBufferMutex);
+			auto it = tf->frameBuffer.find(frameId);
+			if (it != tf->frameBuffer.end()) {
+				matchedBGRA = std::move(it->second);
+				// Evict this frame and all older ones — they are no longer needed.
+				for (auto jt = tf->frameBuffer.begin(); jt != tf->frameBuffer.end();) {
+					if (jt->first <= frameId)
+						jt = tf->frameBuffer.erase(jt);
+					else
+						++jt;
+				}
+			}
+		}
+
+		if (matchedBGRA.empty())
+			return; // frame was evicted (buffer overflow) — skip this mask
+
+		// Resize mask to match the captured frame dimensions.
+		if (foregroundMask.size() != matchedBGRA.size())
+			cv::resize(foregroundMask, foregroundMask, matchedBGRA.size());
+
+		// Build a one-shot LUT that applies an S-curve to the mask:
+		//  1. Values <= FRINGE_CUT  → 0   : kills JPEG-ringing white fringe at edges
+		//  2. Values above cut      → gamma-boosted toward 255 : opaque interior,
+		//                             soft hair strands preserved
+		//
+		// Example mappings (cut=20, gamma=0.5):
+		//   raw  10 (JPEG ringing)     →   0  (fringe removed)
+		//   raw  50 (wispy hair)       →  87  (semi-transparent)
+		//   raw 128 (hair edge)        → 173  (soft edge)
+		//   raw 200 (uncertain head)   → 223  (nearly opaque)
+		//   raw 255 (solid foreground) → 255  (fully opaque)
+		static constexpr int FRINGE_CUT = 20;
+		static constexpr float ALPHA_GAMMA = 0.5f;
+		static cv::Mat lut; // computed once, reused every frame
+		if (lut.empty()) {
+			lut = cv::Mat(1, 256, CV_8U);
+			uchar *p = lut.data;
+			for (int i = 0; i < 256; ++i) {
+				if (i <= FRINGE_CUT) {
+					p[i] = 0;
+				} else {
+					const float v =
+						static_cast<float>(i - FRINGE_CUT) / static_cast<float>(255 - FRINGE_CUT);
+					p[i] = cv::saturate_cast<uchar>(std::pow(v, ALPHA_GAMMA) * 255.0f);
+				}
+			}
+		}
+		cv::Mat softMask;
+		cv::LUT(foregroundMask, lut, softMask);
+
+		cv::Mat composited = matchedBGRA.clone();
+		std::vector<cv::Mat> channels;
+		cv::split(composited, channels); // [B, G, R, A]
+		channels[3] = softMask;          // replace A with S-curve mask
+		cv::merge(channels, composited);
+
+		std::lock_guard<std::mutex> outLock(tf->outputLock);
+		tf->compositedBGRA = std::move(composited);
 	});
 
 	// Register auth-change callback so the WebSocket connects/disconnects automatically
@@ -201,7 +291,7 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	}
 
 	obs_enter_graphics();
-	char *effect_path = obs_module_file(EFFECT_PATH);
+	char *effect_path = obs_module_file(BRIA_EFFECT_PATH);
 	gs_effect_destroy(tf->effect);
 	tf->effect = gs_effect_create_from_file(effect_path, NULL);
 	bfree(effect_path);
@@ -342,39 +432,69 @@ void bria_filter_video_tick(void *data, float seconds)
 		imageBGRA = tf->inputBGRA.clone();
 	}
 
-	if (tf->backgroundMask.empty()) {
-		tf->backgroundMask = cv::Mat(imageBGRA.size(), CV_8UC1, cv::Scalar(255));
-	}
-
 	try {
-		// Apply any mask received from Bria since last tick
-		{
-			std::lock_guard<std::mutex> lock(tf->pendingMaskMutex);
-			if (tf->pendingMaskReady && !tf->pendingForegroundMask.empty()) {
-				cv::Mat foreground = tf->pendingForegroundMask.clone();
-				tf->pendingMaskReady = false;
-
-				const uint8_t threshold_value =
-					static_cast<uint8_t>(BRIA_MASK_THRESHOLD * 255.0f);
-				cv::Mat backgroundMask = foreground <= threshold_value;
-
-				if (backgroundMask.size() != imageBGRA.size()) {
-					cv::resize(backgroundMask, backgroundMask, imageBGRA.size());
-				}
-
-				std::lock_guard<std::mutex> outLock(tf->outputLock);
-				backgroundMask.copyTo(tf->backgroundMask);
-			}
-		}
-
-		// Submit current frame to Bria
-		{
-			std::lock_guard<std::mutex> lock(tf->clientMutex);
-			tf->briaClient->submitFrame(imageBGRA, BRIA_JPEG_QUALITY);
+		// Submit current frame to Bria and buffer it so the mask callback can
+		// retrieve the exact pixels that were sent (frameId-matched compositing).
+		std::lock_guard<std::mutex> clientLock(tf->clientMutex);
+		const uint64_t frameId = tf->briaClient->submitFrame(imageBGRA, BRIA_JPEG_QUALITY);
+		if (frameId != UINT64_MAX) {
+			std::lock_guard<std::mutex> bufLock(tf->frameBufferMutex);
+			tf->frameBuffer[frameId] = std::move(imageBGRA);
+			while (tf->frameBuffer.size() > bria_removal_filter::MAX_BUFFERED_FRAMES)
+				tf->frameBuffer.erase(tf->frameBuffer.begin());
 		}
 	} catch (const std::exception &e) {
 		obs_log(LOG_ERROR, "%s", e.what());
 	}
+}
+
+// ---------------------------------------------------------------------------
+// "Connecting…" overlay helper
+// ---------------------------------------------------------------------------
+
+// Blends the "Connecting…" banner onto the live camera frame so users get
+// clear feedback while the plugin is waiting for the first mask from the API.
+// The number of trailing dots pulses over time so the indicator feels alive.
+static cv::Mat makeConnectingFrame(const cv::Mat &bgra)
+{
+	cv::Mat frame = bgra.clone();
+	if (frame.empty())
+		return frame;
+
+	const int w = frame.cols;
+	const int h = frame.rows;
+
+	// Animate the trailing dots: "Connecting." → ".." → "..." every 600 ms
+	const uint64_t nowMs = os_gettime_ns() / 1000000ULL;
+	const int dots = static_cast<int>((nowMs / 600ULL) % 3) + 1;
+	const std::string text = "Connecting" + std::string(dots, '.');
+
+	const int font = cv::FONT_HERSHEY_SIMPLEX;
+	const double fontScale = std::max(0.9, w / 1280.0 * 1.4);
+	const int thickness = std::max(2, static_cast<int>(fontScale * 1.5));
+	int baseline = 0;
+	const cv::Size textSz = cv::getTextSize(text, font, fontScale, thickness, &baseline);
+
+	// Semi-transparent dark banner centred vertically
+	const int bannerH = textSz.height * 3;
+	const int bannerY = (h - bannerH) / 2;
+	const cv::Rect bannerRect(0, bannerY, w, bannerH);
+	cv::Mat roi = frame(bannerRect);
+	cv::Mat dark(roi.size(), CV_8UC4, cv::Scalar(0, 0, 0, 255));
+	cv::addWeighted(roi, 0.35, dark, 0.65, 0.0, roi);
+
+	// Centre text within the banner
+	const cv::Point textOrg((w - textSz.width) / 2,
+				bannerY + (bannerH + textSz.height) / 2 - baseline);
+
+	// Drop shadow for readability on any background
+	cv::putText(frame, text, textOrg + cv::Point(2, 2), font, fontScale,
+		    cv::Scalar(0, 0, 0, 255), thickness + 2, cv::LINE_AA);
+	// White text
+	cv::putText(frame, text, textOrg, font, fontScale,
+		    cv::Scalar(255, 255, 255, 255), thickness, cv::LINE_AA);
+
+	return frame;
 }
 
 void bria_filter_video_render(void *data, gs_effect_t *_effect)
@@ -410,45 +530,56 @@ void bria_filter_video_render(void *data, gs_effect_t *_effect)
 		return;
 	}
 
-	gs_texture_t *alphaTexture = nullptr;
+	// Grab the latest CPU-composited frame (frameId-matched, always in sync).
+	// Before the first mask arrives, show the live camera feed with a
+	// "Connecting…" overlay so users know the plugin is working.
+	cv::Mat composited;
 	{
 		std::lock_guard<std::mutex> lock(tf->outputLock);
-
-		if (tf->backgroundMask.empty()) {
-			if (tf->source) {
-				obs_source_skip_video_filter(tf->source);
-			}
-			return;
-		}
-
-		alphaTexture = gs_texture_create(tf->backgroundMask.cols, tf->backgroundMask.rows, GS_R8, 1,
-						 (const uint8_t **)&tf->backgroundMask.data, 0);
-
-		if (!alphaTexture) {
-			obs_log(LOG_ERROR, "Bria removal filter: failed to create alpha texture");
-			if (tf->source) {
-				obs_source_skip_video_filter(tf->source);
-			}
-			return;
-		}
+		if (!tf->compositedBGRA.empty())
+			composited = tf->compositedBGRA.clone();
 	}
 
-	if (!obs_source_process_filter_begin(tf->source, GS_RGBA, OBS_ALLOW_DIRECT_RENDERING)) {
-		if (tf->source) {
-			obs_source_skip_video_filter(tf->source);
+	if (composited.empty()) {
+		cv::Mat upstream;
+		{
+			std::unique_lock<std::mutex> upLock(tf->inputBGRALock, std::try_to_lock);
+			if (upLock.owns_lock() && !tf->inputBGRA.empty())
+				upstream = tf->inputBGRA.clone();
 		}
-		gs_texture_destroy(alphaTexture);
+		if (upstream.empty()) {
+			obs_source_skip_video_filter(tf->source);
+			return;
+		}
+		composited = makeConnectingFrame(upstream);
+	}
+
+	// Upload CPU-composited BGRA to a temporary GPU texture.
+	gs_texture_t *compTex =
+		gs_texture_create(static_cast<uint32_t>(composited.cols),
+				  static_cast<uint32_t>(composited.rows), GS_BGRA, 1,
+				  (const uint8_t **)&composited.data, 0);
+
+	if (!compTex) {
+		obs_log(LOG_ERROR, "Bria removal filter: failed to create composited texture");
+		obs_source_skip_video_filter(tf->source);
 		return;
 	}
 
-	gs_eparam_t *alphamask = gs_effect_get_param_by_name(tf->effect, "alphamask");
-	gs_effect_set_texture(alphamask, alphaTexture);
+	if (!obs_source_process_filter_begin(tf->source, GS_RGBA, OBS_ALLOW_DIRECT_RENDERING)) {
+		gs_texture_destroy(compTex);
+		obs_source_skip_video_filter(tf->source);
+		return;
+	}
+
+	gs_eparam_t *precomp = gs_effect_get_param_by_name(tf->effect, "precomposited");
+	gs_effect_set_texture(precomp, compTex);
 
 	gs_blend_state_push();
 	gs_reset_blend_state();
 
-	obs_source_process_filter_tech_end(tf->source, tf->effect, 0, 0, "DrawWithoutBlur");
+	obs_source_process_filter_tech_end(tf->source, tf->effect, 0, 0, "DrawPrecomposited");
 
 	gs_blend_state_pop();
-	gs_texture_destroy(alphaTexture);
+	gs_texture_destroy(compTex);
 }

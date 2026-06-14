@@ -60,6 +60,9 @@ public:
 	void loadFromConfig();
 	void saveToConfig() const;
 
+	// Opens a URL in the system default browser (cross-platform).
+	static void openSystemBrowser(const std::string &url);
+
 private:
 	BriaAuthClient();
 	BriaAuthClient(const BriaAuthClient &) = delete;
@@ -76,7 +79,6 @@ private:
 	void notifyCallbacks();
 
 	static std::string generateSessionId();
-	static void openSystemBrowser(const std::string &url);
 	static std::string httpGet(const std::string &url);
 	static std::string httpPost(const std::string &url, const std::string &jsonBody);
 	static std::string extractJsonString(const std::string &json, const std::string &key);

@@ -18,6 +18,8 @@
 class BriaRmbgClient {
 public:
 	using MaskCallback = std::function<void(cv::Mat foregroundMask, uint64_t frameId)>;
+	// Fired on the ixwebsocket thread. connected=true → Open, connected=false → Close.
+	using ConnectionCallback = std::function<void(bool connected)>;
 
 	BriaRmbgClient();
 	~BriaRmbgClient();
@@ -27,6 +29,7 @@ public:
 
 	bool isConnected() const;
 	void setMaskCallback(MaskCallback callback);
+	void setConnectionCallback(ConnectionCallback callback);
 
 	// Returns the assigned frameId on success, or UINT64_MAX when throttled/disconnected.
 	uint64_t submitFrame(const cv::Mat &imageBGRA, int jpegQuality);
@@ -48,6 +51,8 @@ private:
 	std::string apiToken_;
 	MaskCallback maskCallback_;
 	std::mutex callbackMutex_;
+	ConnectionCallback connectionCallback_;
+	std::mutex connectionCallbackMutex_;
 
 	std::atomic<bool> connected_{false};
 	std::atomic<uint64_t> nextFrameId_{0};

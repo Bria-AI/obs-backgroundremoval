@@ -191,6 +191,12 @@ void BriaRmbgClient::setMaskCallback(MaskCallback callback)
 	maskCallback_ = std::move(callback);
 }
 
+void BriaRmbgClient::setConnectionCallback(ConnectionCallback callback)
+{
+	std::lock_guard<std::mutex> lock(connectionCallbackMutex_);
+	connectionCallback_ = std::move(callback);
+}
+
 bool BriaRmbgClient::canSend() const
 {
 	return isConnected() && inFlightCount_.load() < maxInFlight_.load();
@@ -238,11 +244,35 @@ void BriaRmbgClient::handleMessage(const ix::WebSocketMessagePtr &msg)
 	switch (msg->type) {
 	case ix::WebSocketMessageType::Open:
 		obs_log(LOG_INFO, "Connected to Bria streaming RMBG API");
+		// Restore the connected flag and flush stale state from any previous
+		// session so frame submission resumes immediately (fixes silent failure
+		// after a server-initiated close such as 1013 capacity-exceeded).
+		connected_.store(true);
+		inFlightCount_.store(0);
+		maxInFlight_.store(bria::AIMD_INITIAL_MAX_INFLIGHT);
+		aimdWarmupFrames_ = 0;
+		minRttMs_ = 0.0;
+		smoothedRttMs_ = 0.0;
+		hasRttSamples_ = false;
+		{
+			std::lock_guard<std::mutex> pLock(pendingMutex_);
+			pendingFrames_.clear();
+		}
+		{
+			std::lock_guard<std::mutex> cLock(connectionCallbackMutex_);
+			if (connectionCallback_)
+				connectionCallback_(true);
+		}
 		break;
 	case ix::WebSocketMessageType::Close:
 		obs_log(LOG_INFO, "Disconnected from Bria streaming RMBG API (code %d: %s)", msg->closeInfo.code,
 			msg->closeInfo.reason.c_str());
 		connected_.store(false);
+		{
+			std::lock_guard<std::mutex> cLock(connectionCallbackMutex_);
+			if (connectionCallback_)
+				connectionCallback_(false);
+		}
 		break;
 	case ix::WebSocketMessageType::Error:
 		obs_log(LOG_ERROR, "Bria streaming RMBG WebSocket error: %s", msg->errorInfo.reason.c_str());

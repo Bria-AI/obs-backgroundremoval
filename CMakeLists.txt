@@ -135,6 +135,7 @@ find_package(PkgConfig QUIET)
 ## OBS and Qt
 find_package(libobs REQUIRED)
 find_package(obs-frontend-api REQUIRED)
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 ## CURL
 find_package(CURL CONFIG QUIET)
@@ -206,6 +207,7 @@ endif()
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Widgets)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE onnxruntime::onnxruntime)
 add_subdirectory(src/update-checker/CurlClient)
 target_link_libraries(
@@ -220,10 +222,13 @@ target_link_libraries(
     MbedTLS::mbedcrypto
 )
 
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTOMOC ON)
+
 target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
     src/plugin-main.c
+    src/bria-welcome-dialog.cpp
     src/ort-utils/ort-session-utils.cpp
     src/obs-utils/obs-utils.cpp
     src/obs-utils/obs-config-utils.cpp
@@ -238,8 +243,6 @@ target_sources(
     src/enhance-filter-info.c
     src/bria-filter.cpp
     src/bria-filter-info.c
-    src/bria-source.cpp
-    src/bria-source-info.c
 )
 target_compile_options(
   ${CMAKE_PROJECT_NAME}
