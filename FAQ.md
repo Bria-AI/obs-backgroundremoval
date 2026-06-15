@@ -1,7 +1,7 @@
 # OBS Background Removal – FAQ (Knowledge Base for LLMs)
 
 > **Purpose:**
-> This file is a structured knowledge base for LLMs and AI chat support. Use it to answer user queries about the OBS Background Removal plugin. For interactive help, see: https://royshil.github.io/obs-backgroundremoval/interactive-help/
+> This file is a structured knowledge base for LLMs and AI chat support. Use it to answer user queries about the OBS Background Removal plugin.
 
 ---
 
@@ -26,33 +26,27 @@
 ## 2. Installation (Detailed)
 
 ### Windows
-1. Download the latest Windows ZIP from the [official site](https://royshil.github.io/obs-backgroundremoval/).
+1. Download the latest Windows ZIP from the [releases page](https://github.com/royshil/obs-backgroundremoval/releases).
 2. Extract the ZIP and copy its contents to your OBS Studio install folder (e.g., `C:\Program Files\obs-studio`).
 3. Restart OBS Studio.
-
-[More info](https://royshil.github.io/obs-backgroundremoval/windows/)
 
 ---
 
 ### macOS
-1. Download the latest macOS PKG installer from the [official site](https://royshil.github.io/obs-backgroundremoval/).
+1. Download the latest macOS PKG installer from the [releases page](https://github.com/royshil/obs-backgroundremoval/releases).
 2. Run the PKG installer and follow the instructions.
 3. Restart OBS Studio.
-
-[More info](https://royshil.github.io/obs-backgroundremoval/macos/)
 
 ---
 
 ### Ubuntu
-1. Download the latest Ubuntu DEB package from the [official site](https://royshil.github.io/obs-backgroundremoval/).
+1. Download the latest Ubuntu DEB package from the [releases page](https://github.com/royshil/obs-backgroundremoval/releases).
 2. Install via GUI (double-click `.deb`) or terminal:
    ```sh
    sudo dpkg -i ./obs-backgroundremoval_*_x86_64-linux-gnu.deb
    sudo apt-get install -f
    ```
 3. Restart OBS Studio.
-
-[More info](https://royshil.github.io/obs-backgroundremoval/ubuntu/)
 
 ---
 
@@ -62,8 +56,6 @@
    flatpak install flathub com.obsproject.Studio.Plugin.BackgroundRemoval
    ```
 2. Restart OBS Studio.
-
-[More info](https://royshil.github.io/obs-backgroundremoval/flatpak/)
 
 ---
 
@@ -79,8 +71,6 @@
    yay -S obs-backgroundremoval
    ```
 2. Restart OBS Studio.
-
-[More info](https://royshil.github.io/obs-backgroundremoval/arch/)
 
 ---
 
@@ -130,10 +120,6 @@
 - **Contributing:** Star the GitHub repo, give feedback, or contribute code.
 
 ---
-
-
-[More info](https://royshil.github.io/obs-backgroundremoval/flatpak/)
-
 
 SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
 SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>

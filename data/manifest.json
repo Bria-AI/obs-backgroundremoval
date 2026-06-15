@@ -8,7 +8,7 @@
   "os_arch": "windows-x64, macos, ubuntu-x86_64",
   "urls": {
     "repository": "https://github.com/royshil/obs-backgroundremoval",
-    "website": "https://royshil.github.io/obs-backgroundremoval/",
+    "website": "https://github.com/royshil/obs-backgroundremoval/releases",
     "support": "https://github.com/royshil/obs-backgroundremoval/issues"
   },
   "has_banner": true,
