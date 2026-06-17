@@ -83,8 +83,7 @@ list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/common")
 if(MSVC)
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/windows")
   list(
-    PREPEND
-    CMAKE_PREFIX_PATH
+    PREPEND CMAKE_PREFIX_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-x64"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-x64"
@@ -92,8 +91,7 @@ if(MSVC)
 elseif(APPLE)
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos")
   list(
-    PREPEND
-    CMAKE_PREFIX_PATH
+    PREPEND CMAKE_PREFIX_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/Frameworks"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-universal"
@@ -179,7 +177,8 @@ find_package(ixwebsocket CONFIG REQUIRED)
 if(DEFINED ENV{BRIA_SSO_SECRET} AND NOT "$ENV{BRIA_SSO_SECRET}" STREQUAL "")
   set(_BRIA_SSO_SECRET_VALUE "$ENV{BRIA_SSO_SECRET}")
 else()
-  message(FATAL_ERROR
+  message(
+    FATAL_ERROR
     "Environment variable BRIA_SSO_SECRET is not set.\n"
     "Export it before running cmake:\n"
     "  export BRIA_SSO_SECRET=<value>   # Linux/macOS\n"

@@ -1,4 +1,3 @@
-
 # SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
@@ -14,8 +13,7 @@ macro(get_dependency_info BUILDSPEC_CONTENT DEP_NAME PLATFORM_KEY HAS_DEBUG_SYMB
   string(JSON DEP_HASH GET "${BUILDSPEC_CONTENT}" dependencies "${DEP_NAME}" hashes "${PLATFORM_KEY}")
   if(HAS_DEBUG_SYMBOLS)
     string(
-      JSON
-      DEP_DEBUG_SYMBOLS_HASH
+      JSON DEP_DEBUG_SYMBOLS_HASH
       GET "${BUILDSPEC_CONTENT}"
       dependencies
       "${DEP_NAME}"
