@@ -1,13 +1,11 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 name: Release Plugin
 
 # file: .github/workflows/plugin-release.yml
-# author: Kaito Udagawa <umireon@kaito.tokyo>
 # version: 1.0.1
 # date: 2026-03-31
 

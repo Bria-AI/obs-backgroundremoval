@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -88,8 +88,6 @@ if(MSVC)
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-x64"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-x64"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x64/Release/vcpkg_installed/x64-windows-static-md"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x64-prefix"
   )
 elseif(APPLE)
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos")
@@ -100,18 +98,10 @@ elseif(APPLE)
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-universal"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-universal"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_universal_vcpkg_installed/universal-osx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_universal-prefix"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/vcpkg_installed_universal/universal-osx-obs"
   )
 else()
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/linux")
-  list(
-    PREPEND
-    CMAKE_PREFIX_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x86_64/Release/vcpkg_installed/x64-linux"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x86_64-prefix"
-  )
 endif()
 
 if(VCPKG_TARGET_TRIPLET STREQUAL "")
@@ -184,31 +174,11 @@ find_package(MbedTLS CONFIG REQUIRED)
 ## ixwebsocket (Bria streaming RMBG)
 find_package(ixwebsocket CONFIG REQUIRED)
 
-## ONNX Runtime (Background Removal + Enhance Portrait)
-find_package(onnxruntime CONFIG)
-
-if(NOT onnxruntime_FOUND AND PkgConfig_FOUND)
-  pkg_check_modules(PC_onnxruntime onnxruntime IMPORTED_TARGET)
-  if(PC_onnxruntime_FOUND)
-    add_library(onnxruntime::onnxruntime ALIAS PkgConfig::PC_onnxruntime)
-    set(onnxruntime_FOUND TRUE)
-  endif()
-endif()
-
-if(NOT onnxruntime_FOUND)
-  message(FATAL_ERROR "ONNX Runtime not found via CMake or pkg-config.")
-endif()
-
-if(NOT TARGET onnxruntime::onnxruntime)
-  add_library(onnxruntime::onnxruntime ALIAS onnxruntime)
-endif()
-
 # Plugin build definitions
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Widgets)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE onnxruntime::onnxruntime)
 add_subdirectory(src/update-checker/CurlClient)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
@@ -229,18 +199,13 @@ target_sources(
   PRIVATE
     src/plugin-main.c
     src/bria-welcome-dialog.cpp
-    src/ort-utils/ort-session-utils.cpp
     src/obs-utils/obs-utils.cpp
     src/obs-utils/obs-config-utils.cpp
     src/update-checker/github-utils.cpp
     src/update-checker/update-checker.cpp
-    src/background-filter-info.c
-    src/background-filter.cpp
     src/bria-utils/bria-frame-protocol.cpp
     src/bria-utils/bria-rmbg-client.cpp
     src/bria-utils/bria-auth-client.cpp
-    src/enhance-filter.cpp
-    src/enhance-filter-info.c
     src/bria-filter.cpp
     src/bria-filter-info.c
 )

@@ -367,10 +367,6 @@ bool BriaAuthClient::renewTokenRequest(const std::string &sessionId, const std::
 	return true;
 }
 
-// ---------------------------------------------------------------------------
-// Token decryption
-// AES-256-CBC, key = SHA256("+__BRIA.ai__+"), IV = first 16 bytes of base64-decoded blob
-// ---------------------------------------------------------------------------
 
 bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) const
 {
@@ -436,7 +432,6 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 		return false;
 	}
 
-	// Key = SHA256("+__BRIA.ai__+")
 	uint8_t key[32];
 	static const char secret[] = "+__BRIA.ai__+";
 	mbedtls_sha256(reinterpret_cast<const uint8_t *>(secret), sizeof(secret) - 1, key, 0);

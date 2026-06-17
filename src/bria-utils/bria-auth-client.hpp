@@ -14,7 +14,7 @@
  *   1. generateSessionId()  →  obs-<random>
  *   2. Open https://platform.bria.ai/plugin-login?pluginAuthId=<id> in system browser
  *   3. Poll https://platform-api.bria.ai/plugins/auth/token_status every 2 s
- *   4. On success: AES-256-CBC decrypt (key = SHA256("+__BRIA.ai__+"), IV = first 16 bytes)
+ *   4. On success: AES-256-CBC decrypt
  *   5. Parse JSON → extract api_token, org_name, user_email
  *   6. Persist session_id + encrypted_token in OBS global config
  *   7. Renew on expiry via /renew_token

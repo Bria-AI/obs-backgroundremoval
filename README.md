@@ -1,109 +1,66 @@
-# OBS Plugin: Portrait Background Removal / Virtual Green-screen and Low-Light Enhancement
+# OBS Plugin: Bria Background Removal
 
-<div align="center">
+An OBS Studio plugin that removes the background from your video in real time using [Bria's](https://bria.ai) cloud-based AI API — no local ML models required.
 
-[![GitHub](https://img.shields.io/github/license/royshil/obs-backgroundremoval)](https://github.com/royshil/obs-backgroundremoval/blob/main/LICENSE)
-[![GitHub Workflow Status](https://github.com/royshil/obs-backgroundremoval/actions/workflows/push.yaml/badge.svg)](https://github.com/royshil/obs-backgroundremoval/actions/workflows/push.yaml)
-[![Total downloads](https://img.shields.io/github/downloads/royshil/obs-backgroundremoval/total)](https://github.com/royshil/obs-backgroundremoval/releases)
-![Flathub](https://img.shields.io/flathub/downloads/com.obsproject.Studio.Plugin.BackgroundRemoval?label=Flathub%20Installs)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/royshil/obs-backgroundremoval)](https://github.com/royshil/obs-backgroundremoval/releases)
+## Requirements
 
-</div>
+- OBS Studio 31.1.1 or later
+- A Bria account (sign up at [bria.ai](https://bria.ai))
+- Internet connection (background removal runs on Bria's cloud)
 
+## Installation
 
-A plugin for [OBS Studio](https://obsproject.com/) that allows you to replace the background in portrait images and video, as well as enhance low-light scenes.
+### Windows
 
-<p align="center">
-  <a href="https://royshil.github.io/obs-backgroundremoval/">
-    <b>⬇️ Download & Install OBS Background Removal ⬇️</b>
-  </a>
-</p>
+1. Download the latest `.zip` from the [releases page](../../releases).
+2. Extract to `%ProgramFiles%\obs-studio\`.
+3. Restart OBS Studio.
 
-Or, browse versions on [releases page](https://github.com/royshil/obs-backgroundremoval/releases).
+### macOS
 
-> Not working? Please try [the Lite version (Live Background Removal Lite)](https://github.com/kaito-tokyo/live-backgroundremoval-lite) developed by one of us (Kaito Udagawa).
+1. Download the latest `.pkg` from the [releases page](../../releases).
+2. Run the installer.
+3. Restart OBS Studio.
+
+### Linux
+
+1. Download the latest `.deb` from the [releases page](../../releases).
+2. `sudo dpkg -i obs-backgroundremoval-*.deb`
+3. Restart OBS Studio.
 
 ## Usage
 
-<div style="text-align:center;">
-<video src="https://github.com/royshil/obs-backgroundremoval/assets/1067855/5ba5aae2-7ea2-4c90-ad45-fba5ccde1a4e" width="320"></video>
-</div>
+1. In OBS, right-click a video source → **Filters** → **+** → **Bria - Remove Background**.
+2. Click **Sign in with Bria** and complete the browser login.
+3. Once signed in, background removal activates automatically on every frame.
 
-Check out the [usage guide page](https://royshil.github.io/obs-backgroundremoval/usage/) for usage walkthrough and recommendations.
+## How it works
 
-Additional tutorial videos:
+Frames are JPEG-encoded and streamed to Bria's background removal API over a persistent WebSocket connection. Returned alpha masks are composited CPU-side, and the final BGRA frame (transparent background) is uploaded to a GPU texture for OBS rendering.
 
-- [▶︎ Official guide to the Background Removal plugin for OBS Studio on YouTube](https://www.youtube.com/playlist?list=PLfd4SnaQQz_DVr_18OQozucYmiC56rRhy)
-- Depth of Field effect: https://youtu.be/jC3EKSpNjQk
-- Low-light enhancement: https://youtu.be/WSBLYWFrn2Q
-- Remove background from ANY object (not just human): https://youtu.be/N74VCDCToX8
+## Building from source
 
-## Introduction
+### Dependencies
 
-This plugin is meant to make it easy to replace the background in portrait images and video.
-It is using a neural network to predict the mask of the portrait and remove the background pixels.
-It's easily composable with other OBS plugins to replace the background with e.g. an image or
-a transparent color.
+| Library | Purpose |
+|---------|---------|
+| OBS Studio 31.1.1+ | Host API |
+| Qt 6 | UI (sign-in dialog, welcome screen) |
+| OpenCV (core + imgproc) | Frame buffer handling |
+| libjpeg-turbo | JPEG encode/decode for Bria frames |
+| ixwebsocket | WebSocket streaming to Bria API |
+| MbedTLS (mbedcrypto) | AES-256-CBC decryption of SSO tokens |
+| libcurl | Update checker HTTP requests |
 
-If you like this work, which is given to you completely free of charge, please consider supporting it by sponsoring us on GitHub:
+### Build (Windows example)
 
-- https://github.com/sponsors/royshil
-- https://github.com/sponsors/umireon
+```bash
+cmake --preset windows-x64
+cmake --build --preset windows-x64
+```
 
-### Support and Help
+See the [CI workflow](.github/workflows/) for macOS and Linux build steps.
 
-Reach out to us on [GitHub Discussions](https://github.com/royshil/obs-backgroundremoval/discussions) or the [OBS Plugins forum](https://obsproject.com/forum/resources/background-removal-portrait-segmentation.1260/) for online / immediate help.
+## License
 
-If you found a bug or want to suggest a feature or improvement please open an [issue](https://github.com/royshil/obs-backgroundremoval/issues).
-
-If you are looking for hands-on help or private consultation please select a [sponsorship tier](https://github.com/sponsors/royshil?frequency=one-time).
-
-### Technical Details
-
-GPU support:
-
-- On Windows, we plan to support WinML acceleration.
-- On Mac we support CoreML for acceleration, which is efficient on Apple Silicon. **Note:** This plugin does not support cross-architecture translation (Rosetta2). Intel binaries on Apple Silicon or Apple Silicon binaries on Intel will crash.
-- On Linux CUDA, ROCM (deprecated in ONNX Runtime 1.23.0), and MIGraphX are supported if this plugin is built from source. Ensure your ONNX Runtime installation has CUDA, ROCM, or MIGraphX support. For AMD GPUs, MIGraphX is recommended as ROCM was removed from ONNX Runtime starting with version 1.23.0.
-- The goal of this plugin is to be available for everyone on every system, even if they don't own a GPU.
-
-Number of CPU threads is controllable through the UI settings. A 2-thread setting works best.
-
-The pretrained model weights used for portrait foreground segmentation are taken from:
-
-- https://github.com/anilsathyan7/Portrait-Segmentation/tree/master/SINet
-- https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.7/contrib/PP-HumanSeg
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/082_MediaPipe_Meet_Segmentation
-- https://github.com/PeterL1n/RobustVideoMatting
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/384_TCMonoDepth and https://github.com/yu-li/TCMonoDepth
-
-Image enhancement (low light) models are taken from:
-
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/213_TBEFN
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/372_URetinex-Net
-- https://github.com/PINTO0309/PINTO_model_zoo/tree/main/370_Semantic-Guided-Low-Light-Image-Enhancement
-
-Some more information about how I built it: https://www.morethantechnical.com/2021/04/15/obs-plugin-for-portrait-background-removal-with-onnx-sinet-model/ and https://www.morethantechnical.com/2023/05/20/building-an-obs-background-removal-plugin-a-walkthrough/
-
-### Code Walkthrough
-
-This video on YouTube will take you through the major parts of the code and explain them.
-
-<div align="center">
-  <a href="https://youtu.be/iFQtcJg0Wsk" target="_blank">
-    <img width="50%" src="https://img.youtube.com/vi/iFQtcJg0Wsk/maxresdefault.jpg"/>
-  </a>
-</div>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=royshil/obs-backgroundremoval&type=Date&theme=dark" />
-  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=royshil/obs-backgroundremoval&type=Date" />
-  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=royshil/obs-backgroundremoval&type=Date" />
-</picture>
-
----
-
-> SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>  
-> SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>  
->
-> SPDX-License-Identifier: GPL-3.0-or-later  
+GPL-3.0-or-later — see [LICENSES/](LICENSES/).

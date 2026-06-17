@@ -1,14 +1,9 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 name: Plugin CI
-
-# file: .github/workflows/plugin.yml
-# author: Kaito Udagawa <umireon@kaito.tokyo>
-# date: 2026-05-21
 
 on:
   pull_request:
@@ -29,7 +24,6 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 10
     outputs:
-      ORT_VERSION: ${{ steps.config.outputs.ORT_VERSION }}
       VCPKG_BINARY_SOURCES: ${{ steps.config.outputs.VCPKG_BINARY_SOURCES }}
       VCPKG_VERSION: ${{ steps.config.outputs.VCPKG_VERSION }}
     steps:
@@ -37,8 +31,7 @@ jobs:
         id: config
         shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
         run: |
-          echo 'ORT_VERSION=v1.24.4' >> "${GITHUB_OUTPUT}"
-          echo 'VCPKG_BINARY_SOURCES=clear;http,https://vcpkg-obs.kaito.tokyo/{name}/{version}/{sha},read' >> "${GITHUB_OUTPUT}"
+          echo 'VCPKG_BINARY_SOURCES=clear' >> "${GITHUB_OUTPUT}"
           echo 'VCPKG_VERSION=2026.04.27' >> "${GITHUB_OUTPUT}"
 
   build-windows:
@@ -49,7 +42,6 @@ jobs:
     with:
       VCPKG_BINARY_SOURCES: ${{ needs.config.outputs.VCPKG_BINARY_SOURCES }}
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
-      ort-version: ${{ needs.config.outputs.ORT_VERSION }}
 
   build-macos:
     needs: config
@@ -59,7 +51,6 @@ jobs:
     with:
       VCPKG_BINARY_SOURCES: ${{ needs.config.outputs.VCPKG_BINARY_SOURCES }}
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
-      ort-version: ${{ needs.config.outputs.ORT_VERSION }}
       codesign-enabled: true
       DEVELOPER_DIR: /Applications/Xcode_16.4.app
     secrets: inherit
@@ -72,7 +63,6 @@ jobs:
     with:
       VCPKG_BINARY_SOURCES: ${{ needs.config.outputs.VCPKG_BINARY_SOURCES }}
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
-      ort-version: ${{ needs.config.outputs.ORT_VERSION }}
 
   accept-plugin:
     name: Accept Plugin CI
