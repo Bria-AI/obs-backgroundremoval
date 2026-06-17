@@ -9,8 +9,8 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
-    tags: ['*']
+    branches: [main, implment-bria-remove-background-sourcer]
+    tags: ["*"]
 
 permissions: {}
 
