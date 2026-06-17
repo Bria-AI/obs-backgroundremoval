@@ -1,6 +1,7 @@
 # OBS Plugin: Bria Background Removal
 
-An OBS Studio plugin that removes the background from your video in real time using [Bria's](https://bria.ai) cloud-based AI API — no local ML models required.
+An OBS Studio plugin that removes the background from your video in real time using [Bria's](https://bria.ai)
+cloud-based AI API — no local ML models required.
 
 ## Requirements
 
@@ -36,21 +37,23 @@ An OBS Studio plugin that removes the background from your video in real time us
 
 ## How it works
 
-Frames are JPEG-encoded and streamed to Bria's background removal API over a persistent WebSocket connection. Returned alpha masks are composited CPU-side, and the final BGRA frame (transparent background) is uploaded to a GPU texture for OBS rendering.
+Frames are JPEG-encoded and streamed to Bria's background removal API over a persistent WebSocket connection. Returned
+alpha masks are composited CPU-side, and the final BGRA frame (transparent background) is uploaded to a GPU texture for
+OBS rendering.
 
 ## Building from source
 
 ### Dependencies
 
-| Library | Purpose |
-|---------|---------|
-| OBS Studio 31.1.1+ | Host API |
-| Qt 6 | UI (sign-in dialog, welcome screen) |
-| OpenCV (core + imgproc) | Frame buffer handling |
-| libjpeg-turbo | JPEG encode/decode for Bria frames |
-| ixwebsocket | WebSocket streaming to Bria API |
-| MbedTLS (mbedcrypto) | AES-256-CBC decryption of SSO tokens |
-| libcurl | Update checker HTTP requests |
+| Library                 | Purpose                              |
+|-------------------------|--------------------------------------|
+| OBS Studio 31.1.1+      | Host API                             |
+| Qt 6                    | UI (sign-in dialog, welcome screen)  |
+| OpenCV (core + imgproc) | Frame buffer handling                |
+| libjpeg-turbo           | JPEG encode/decode for Bria frames   |
+| ixwebsocket             | WebSocket streaming to Bria API      |
+| MbedTLS (mbedcrypto)    | AES-256-CBC decryption of SSO tokens |
+| libcurl                 | Update checker HTTP requests         |
 
 ### Build (Windows example)
 
@@ -63,4 +66,6 @@ See the [CI workflow](.github/workflows/) for macOS and Linux build steps.
 
 ## License
 
-GPL-3.0-or-later — see [LICENSES/](LICENSES/).
+> SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+>
+> SPDX-License-Identifier: GPL-3.0-or-later - see [LICENSES/](LICENSES/).  

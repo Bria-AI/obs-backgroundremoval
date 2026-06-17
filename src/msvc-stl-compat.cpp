@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+//
+// SPDX-License-Identifier: CC0-1.0
+
 // Stub definitions for MSVC STL vectorised search helpers that are referenced
 // by opencv_core's log-tag configuration parser when built with MSVC 14.40+,
 // but are not present as a link-time symbol in any shipped MSVC static library

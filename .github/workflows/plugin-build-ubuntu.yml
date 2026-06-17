@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -24,7 +25,7 @@ on:
       BRIA_SSO_SECRET:
         required: true
 
-permissions: {}
+permissions: { }
 
 jobs:
   build-ubuntu-x86_64:

@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -44,7 +45,7 @@ on:
       MACOS_SIGNING_INSTALLER_IDENTITY:
         required: false
 
-permissions: {}
+permissions: { }
 
 jobs:
   build-macos-universal:

@@ -1,4 +1,5 @@
-﻿#
+﻿# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+#
 # SPDX-License-Identifier: Apache-2.0
 
 # file: .github/scripts/clean-env-ubuntu.bash

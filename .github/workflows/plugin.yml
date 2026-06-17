@@ -1,19 +1,20 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 name: Plugin CI
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   pull_request:
-    branches: [main]
+    branches: [ main ]
   push:
-    branches: [main]
-    tags: ["*"]
+    branches: [ main ]
+    tags: [ "*" ]
 
-permissions: {}
+permissions: { }
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +22,7 @@ concurrency:
 
 jobs:
   config:
-    permissions: {}
+    permissions: { }
     runs-on: ubuntu-slim
     timeout-minutes: 10
     outputs:
@@ -70,9 +71,9 @@ jobs:
 
   accept-plugin:
     name: Accept Plugin CI
-    needs: [build-windows, build-macos, build-ubuntu]
+    needs: [ build-windows, build-macos, build-ubuntu ]
     runs-on: ubuntu-slim
-    permissions: {}
+    permissions: { }
     steps:
       - name: Accept plugin
         run: |

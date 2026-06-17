@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -60,39 +61,40 @@ const crypto_sign_BYTES = 64;
  * @param {string} pubkeyString The Base64-string of the public key.
  * @return {Promise<Pubkey>}
  */
-export async function readPubkey($arrayBufferToBase64url, $base64ToUint8Array, pubkeyString) {
-  const bytes = $base64ToUint8Array(pubkeyString);
+export async function readPubkey($arrayBufferToBase64url, $base64ToUint8Array, pubkeyString)
+{
+	const bytes = $base64ToUint8Array(pubkeyString);
 
-  if (bytes.length !== 2 + KEYNUMBYTES + crypto_sign_PUBLICKEYBYTES) {
-    throw new Error("InvalidPubkeyLengthError");
-  }
+	if (bytes.length !== 2 + KEYNUMBYTES + crypto_sign_PUBLICKEYBYTES) {
+		throw new Error("InvalidPubkeyLengthError");
+	}
 
-  const sigAlgBytes = bytes.subarray(0, 2);
-  const keynum = bytes.subarray(2, 2 + KEYNUMBYTES);
-  const pk = bytes.subarray(2 + KEYNUMBYTES);
+	const sigAlgBytes = bytes.subarray(0, 2);
+	const keynum = bytes.subarray(2, 2 + KEYNUMBYTES);
+	const pk = bytes.subarray(2 + KEYNUMBYTES);
 
-  if (sigAlgBytes[0] !== /*E*/ 0x45 || sigAlgBytes[1] !== /*d*/ 0x64) {
-    throw new Error("InvalidSigAlgError");
-  }
+	if (sigAlgBytes[0] !== /*E*/ 0x45 || sigAlgBytes[1] !== /*d*/ 0x64) {
+		throw new Error("InvalidSigAlgError");
+	}
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "jwk",
-    {
-      kty: "OKP",
-      crv: "Ed25519",
-      x: await $arrayBufferToBase64url(pk),
-    },
-    { name: "Ed25519" },
-    false,
-    ["verify"],
-  );
+	const cryptoKey = await crypto.subtle.importKey(
+		"jwk",
+		{
+			kty: "OKP",
+			crv: "Ed25519",
+			x: await $arrayBufferToBase64url(pk),
+		},
+		{name: "Ed25519"},
+		false,
+		["verify"],
+	);
 
-  return {
-    cryptoKey,
-    sigAlg: SIGALG,
-    keynum,
-    pk,
-  };
+	return {
+		cryptoKey,
+		sigAlg: SIGALG,
+		keynum,
+		pk,
+	};
 }
 
 /**
@@ -101,32 +103,33 @@ export async function readPubkey($arrayBufferToBase64url, $base64ToUint8Array, p
  * @param {string} sigString The Base64-string of the signature.
  * @return {Sig}
  */
-export function parseSig($base64ToUint8Array, sigString) {
-  const bytes = $base64ToUint8Array(sigString);
+export function parseSig($base64ToUint8Array, sigString)
+{
+	const bytes = $base64ToUint8Array(sigString);
 
-  if (bytes.length !== 2 + KEYNUMBYTES + crypto_sign_BYTES) {
-    throw new Error("InvalidSigLengthError");
-  }
+	if (bytes.length !== 2 + KEYNUMBYTES + crypto_sign_BYTES) {
+		throw new Error("InvalidSigLengthError");
+	}
 
-  const sigAlgBytes = bytes.subarray(0, 2);
-  const keynum = bytes.subarray(2, 2 + KEYNUMBYTES);
-  const sig = bytes.subarray(2 + KEYNUMBYTES);
+	const sigAlgBytes = bytes.subarray(0, 2);
+	const keynum = bytes.subarray(2, 2 + KEYNUMBYTES);
+	const sig = bytes.subarray(2 + KEYNUMBYTES);
 
-  /** @type {'Ed' | 'ED' | undefined} */
-  let sigAlg;
-  if (sigAlgBytes[0] === /*E*/ 0x45) {
-    if (sigAlgBytes[1] === /*d*/ 0x64) {
-      sigAlg = SIGALG;
-    } else if (sigAlgBytes[1] === /*D*/ 0x44) {
-      sigAlg = SIGALG_HASHED;
-    }
-  }
+	/** @type {'Ed' | 'ED' | undefined} */
+	let sigAlg;
+	if (sigAlgBytes[0] === /*E*/ 0x45) {
+		if (sigAlgBytes[1] === /*d*/ 0x64) {
+			sigAlg = SIGALG;
+		} else if (sigAlgBytes[1] === /*D*/ 0x44) {
+			sigAlg = SIGALG_HASHED;
+		}
+	}
 
-  if (!sigAlg) {
-    throw new Error("InvalidSigAlgError");
-  }
+	if (!sigAlg) {
+		throw new Error("InvalidSigAlgError");
+	}
 
-  return { sigAlg, keynum, sig };
+	return {sigAlg, keynum, sig};
 }
 
 /**
@@ -136,35 +139,36 @@ export function parseSig($base64ToUint8Array, sigString) {
  * @param {string} sigFileContent The content of the `.minisig` file as a string.
  * @return {SigFile}
  */
-export function parseSigFile($parseSig, $base64ToUint8Array, sigFileContent) {
-  const lines = sigFileContent.split(/\r?\n/);
+export function parseSigFile($parseSig, $base64ToUint8Array, sigFileContent)
+{
+	const lines = sigFileContent.split(/\r?\n/);
 
-  if (lines.length < 4) {
-    throw new Error("InvalidSigContentError");
-  }
+	if (lines.length < 4) {
+		throw new Error("InvalidSigContentError");
+	}
 
-  const [commentLine, sigString, trustedCommentLine, globalSigString] = lines;
+	const [commentLine, sigString, trustedCommentLine, globalSigString] = lines;
 
-  if (!commentLine.startsWith(COMMENT_PREFIX)) {
-    throw new Error("InvalidUntrustedCommentError");
-  }
+	if (!commentLine.startsWith(COMMENT_PREFIX)) {
+		throw new Error("InvalidUntrustedCommentError");
+	}
 
-  if (!trustedCommentLine.startsWith(TRUSTED_COMMENT_PREFIX)) {
-    throw new Error("InvalidTrustedCommentError");
-  }
+	if (!trustedCommentLine.startsWith(TRUSTED_COMMENT_PREFIX)) {
+		throw new Error("InvalidTrustedCommentError");
+	}
 
-  const comment = commentLine.substring(COMMENT_PREFIX.length);
-  const sig = $parseSig($base64ToUint8Array, sigString);
-  const trustedComment = trustedCommentLine.substring(
-    TRUSTED_COMMENT_PREFIX.length,
-  );
-  const globalSig = $base64ToUint8Array(globalSigString);
+	const comment = commentLine.substring(COMMENT_PREFIX.length);
+	const sig = $parseSig($base64ToUint8Array, sigString);
+	const trustedComment = trustedCommentLine.substring(
+		TRUSTED_COMMENT_PREFIX.length,
+	);
+	const globalSig = $base64ToUint8Array(globalSigString);
 
-  if (globalSig.length !== crypto_sign_BYTES) {
-    throw new Error("InvalidGlobalSigLengthError");
-  }
+	if (globalSig.length !== crypto_sign_BYTES) {
+		throw new Error("InvalidGlobalSigLengthError");
+	}
 
-  return { comment, sig, trustedComment, globalSig };
+	return {comment, sig, trustedComment, globalSig};
 }
 
 /**
@@ -172,9 +176,10 @@ export function parseSigFile($parseSig, $base64ToUint8Array, sigFileContent) {
  * @param {Pubkey | Sig} pubkey
  * @return {KeynumKey}
  */
-export function getKeynumKey(pubkey) {
-  const { keynum } = pubkey;
-  return new DataView(keynum.buffer, keynum.byteOffset, keynum.byteLength).getBigUint64(0, true);
+export function getKeynumKey(pubkey)
+{
+	const {keynum} = pubkey;
+	return new DataView(keynum.buffer, keynum.byteOffset, keynum.byteLength).getBigUint64(0, true);
 }
 
 /**
@@ -188,62 +193,63 @@ export function getKeynumKey(pubkey) {
  * @return {Promise<VerifyMinisignResult>} The result of the verification.
  *   Use its `ok` property to check if verification was successful.
  */
-export async function verifyMinisign(pubkeys, sigFile, dataFunc) {
-  const sigKeynumKey = getKeynumKey(sigFile.sig);
-  const pubkey = pubkeys instanceof Map ? pubkeys.get(sigKeynumKey) : pubkeys;
+export async function verifyMinisign(pubkeys, sigFile, dataFunc)
+{
+	const sigKeynumKey = getKeynumKey(sigFile.sig);
+	const pubkey = pubkeys instanceof Map ? pubkeys.get(sigKeynumKey) : pubkeys;
 
-  if (!pubkey || getKeynumKey(pubkey) !== sigKeynumKey) {
-    return {
-      ok: false,
-      isPubkeyFound: false,
-      isMessageValid: false,
-      isCommentValid: false,
-    };
-  }
+	if (!pubkey || getKeynumKey(pubkey) !== sigKeynumKey) {
+		return {
+			ok: false,
+			isPubkeyFound: false,
+			isMessageValid: false,
+			isCommentValid: false,
+		};
+	}
 
-  const { cryptoKey } = pubkey;
-  const { sig: { sigAlg, sig }, trustedComment, globalSig } = sigFile;
+	const {cryptoKey} = pubkey;
+	const {sig: {sigAlg, sig}, trustedComment, globalSig} = sigFile;
 
-  if (sigAlg !== SIGALG_HASHED && sigAlg !== SIGALG) {
-    throw new Error("UnsupportedSigAlgError");
-  }
+	if (sigAlg !== SIGALG_HASHED && sigAlg !== SIGALG) {
+		throw new Error("UnsupportedSigAlgError");
+	}
 
-  const isMessageValid = await crypto.subtle.verify(
-    { name: "Ed25519" },
-    cryptoKey,
-    sig,
-    await dataFunc(sigAlg === SIGALG_HASHED),
-  );
+	const isMessageValid = await crypto.subtle.verify(
+		{name: "Ed25519"},
+		cryptoKey,
+		sig,
+		await dataFunc(sigAlg === SIGALG_HASHED),
+	);
 
-  const trustedCommentBytes = new TextEncoder().encode(trustedComment);
-  const sigAndTrustedComment = new Uint8Array(
-    sig.length + trustedCommentBytes.length,
-  );
-  sigAndTrustedComment.set(sig, 0);
-  sigAndTrustedComment.set(trustedCommentBytes, sig.length);
+	const trustedCommentBytes = new TextEncoder().encode(trustedComment);
+	const sigAndTrustedComment = new Uint8Array(
+		sig.length + trustedCommentBytes.length,
+	);
+	sigAndTrustedComment.set(sig, 0);
+	sigAndTrustedComment.set(trustedCommentBytes, sig.length);
 
-  const isCommentValid = await crypto.subtle.verify(
-    { name: "Ed25519" },
-    cryptoKey,
-    globalSig,
-    sigAndTrustedComment,
-  );
+	const isCommentValid = await crypto.subtle.verify(
+		{name: "Ed25519"},
+		cryptoKey,
+		globalSig,
+		sigAndTrustedComment,
+	);
 
-  const ok = isMessageValid && isCommentValid;
-  if (ok) {
-    return {
-      ok,
-      trustedComment,
-      isPubkeyFound: true,
-      isMessageValid,
-      isCommentValid,
-    };
-  } else {
-    return {
-      ok,
-      isPubkeyFound: true,
-      isMessageValid,
-      isCommentValid,
-    };
-  }
+	const ok = isMessageValid && isCommentValid;
+	if (ok) {
+		return {
+			ok,
+			trustedComment,
+			isPubkeyFound: true,
+			isMessageValid,
+			isCommentValid,
+		};
+	} else {
+		return {
+			ok,
+			isPubkeyFound: true,
+			isMessageValid,
+			isCommentValid,
+		};
+	}
 }

@@ -1,4 +1,6 @@
 
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+#
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.28)

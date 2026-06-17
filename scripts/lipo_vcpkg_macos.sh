@@ -1,6 +1,8 @@
 #!/bin/bash
 
 
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+#
 # SPDX-License-Identifier: Apache-2.0
 
 # file: scripts/lipo_vcpkg_macos.sh

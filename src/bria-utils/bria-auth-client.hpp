@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+//
+// SPDX-License-Identifier: CC0-1.0
+
 #ifndef BRIA_AUTH_CLIENT_H
 #define BRIA_AUTH_CLIENT_H
 

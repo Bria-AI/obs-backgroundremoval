@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+//
+// SPDX-License-Identifier: CC0-1.0
+
 #include "bria-frame-protocol.hpp"
 
 #include <cstring>
