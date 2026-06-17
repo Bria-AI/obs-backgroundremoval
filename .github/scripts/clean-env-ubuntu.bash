@@ -1,9 +1,7 @@
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
-#
+﻿#
 # SPDX-License-Identifier: Apache-2.0
 
 # file: .github/scripts/clean-env-ubuntu.bash
-# author: Kaito Udagawa <umireon@kaito.tokyo>
 # version: 1.0.2
 # date: 2026-04-02
 
