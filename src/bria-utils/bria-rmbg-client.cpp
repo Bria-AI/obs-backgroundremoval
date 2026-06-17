@@ -221,8 +221,8 @@ uint64_t BriaRmbgClient::submitFrame(const cv::Mat &imageBGRA, int jpegQuality)
 	}
 
 	const uint64_t frameId = nextFrameId_.fetch_add(1);
-	const auto elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(
-		std::chrono::steady_clock::now() - sessionStart_);
+	const auto elapsedUs =
+		std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - sessionStart_);
 	const std::vector<uint8_t> packet = bria::packVideoJpegFrame(frameId, elapsedUs.count(), jpegData);
 
 	{
@@ -301,10 +301,9 @@ void BriaRmbgClient::handleBinaryMessage(const std::vector<uint8_t> &data)
 		std::lock_guard<std::mutex> lock(pendingMutex_);
 		const auto it = pendingFrames_.find(frame->frameId);
 		if (it != pendingFrames_.end()) {
-			rttMs = static_cast<double>(
-				std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
-											it->second.sendTime)
-					.count());
+			rttMs = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+							    std::chrono::steady_clock::now() - it->second.sendTime)
+							    .count());
 		}
 	}
 
@@ -347,8 +346,8 @@ void BriaRmbgClient::purgeStalePendingFrames()
 	{
 		std::lock_guard<std::mutex> lock(pendingMutex_);
 		for (auto it = pendingFrames_.begin(); it != pendingFrames_.end();) {
-			const auto ageMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second.sendTime)
-						   .count();
+			const auto ageMs =
+				std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second.sendTime).count();
 			if (ageMs > bria::AIMD_STALE_FRAME_TIMEOUT_MS) {
 				staleFound = true;
 				it = pendingFrames_.erase(it);

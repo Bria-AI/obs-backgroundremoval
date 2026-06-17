@@ -35,7 +35,7 @@ std::string urlEncode(const std::string &value)
 
 std::string buildStreamingWsUrl(const std::string &serverUrl, const std::string &apiToken)
 {
-	
+
 	if (apiToken.empty()) {
 		return {};
 	}
@@ -97,14 +97,11 @@ std::optional<BinaryFrame> unpackBinaryFrame(const std::vector<uint8_t> &buffer)
 		return std::nullopt;
 	}
 
-	const uint32_t frameIdHi = (static_cast<uint32_t>(buffer[8]) << 24) |
-				   (static_cast<uint32_t>(buffer[9]) << 16) |
-				   (static_cast<uint32_t>(buffer[10]) << 8) |
-				   static_cast<uint32_t>(buffer[11]);
+	const uint32_t frameIdHi = (static_cast<uint32_t>(buffer[8]) << 24) | (static_cast<uint32_t>(buffer[9]) << 16) |
+				   (static_cast<uint32_t>(buffer[10]) << 8) | static_cast<uint32_t>(buffer[11]);
 	const uint32_t frameIdLo = (static_cast<uint32_t>(buffer[12]) << 24) |
 				   (static_cast<uint32_t>(buffer[13]) << 16) |
-				   (static_cast<uint32_t>(buffer[14]) << 8) |
-				   static_cast<uint32_t>(buffer[15]);
+				   (static_cast<uint32_t>(buffer[14]) << 8) | static_cast<uint32_t>(buffer[15]);
 
 	BinaryFrame frame;
 	frame.frameId = (static_cast<uint64_t>(frameIdHi) << 32) | frameIdLo;

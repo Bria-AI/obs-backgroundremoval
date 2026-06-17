@@ -243,8 +243,8 @@ void bria_filter_update(void *data, obs_data_t *settings)
 				if (i <= FRINGE_CUT) {
 					p[i] = 0;
 				} else {
-					const float v =
-						static_cast<float>(i - FRINGE_CUT) / static_cast<float>(255 - FRINGE_CUT);
+					const float v = static_cast<float>(i - FRINGE_CUT) /
+							static_cast<float>(255 - FRINGE_CUT);
 					p[i] = cv::saturate_cast<uchar>(std::pow(v, ALPHA_GAMMA) * 255.0f);
 				}
 			}
@@ -268,8 +268,8 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	// so both are done on a detached thread to avoid freezing any caller (including the
 	// OBS UI thread during logout).
 	if (!tf->authCallbackRegistered) {
-		tf->authCallbackHandle = BriaAuthClient::instance().addCallback(
-			[weakTf = std::weak_ptr<bria_removal_filter>(tf)]() {
+		tf->authCallbackHandle =
+			BriaAuthClient::instance().addCallback([weakTf = std::weak_ptr<bria_removal_filter>(tf)]() {
 				const std::string token = BriaAuthClient::instance().getApiToken();
 				std::thread([weakTf, token]() {
 					auto lockedTf = weakTf.lock();
@@ -484,15 +484,13 @@ static cv::Mat makeConnectingFrame(const cv::Mat &bgra)
 	cv::addWeighted(roi, 0.35, dark, 0.65, 0.0, roi);
 
 	// Centre text within the banner
-	const cv::Point textOrg((w - textSz.width) / 2,
-				bannerY + (bannerH + textSz.height) / 2 - baseline);
+	const cv::Point textOrg((w - textSz.width) / 2, bannerY + (bannerH + textSz.height) / 2 - baseline);
 
 	// Drop shadow for readability on any background
-	cv::putText(frame, text, textOrg + cv::Point(2, 2), font, fontScale,
-		    cv::Scalar(0, 0, 0, 255), thickness + 2, cv::LINE_AA);
+	cv::putText(frame, text, textOrg + cv::Point(2, 2), font, fontScale, cv::Scalar(0, 0, 0, 255), thickness + 2,
+		    cv::LINE_AA);
 	// White text
-	cv::putText(frame, text, textOrg, font, fontScale,
-		    cv::Scalar(255, 255, 255, 255), thickness, cv::LINE_AA);
+	cv::putText(frame, text, textOrg, font, fontScale, cv::Scalar(255, 255, 255, 255), thickness, cv::LINE_AA);
 
 	return frame;
 }
@@ -555,10 +553,9 @@ void bria_filter_video_render(void *data, gs_effect_t *_effect)
 	}
 
 	// Upload CPU-composited BGRA to a temporary GPU texture.
-	gs_texture_t *compTex =
-		gs_texture_create(static_cast<uint32_t>(composited.cols),
-				  static_cast<uint32_t>(composited.rows), GS_BGRA, 1,
-				  (const uint8_t **)&composited.data, 0);
+	gs_texture_t *compTex = gs_texture_create(static_cast<uint32_t>(composited.cols),
+						  static_cast<uint32_t>(composited.rows), GS_BGRA, 1,
+						  (const uint8_t **)&composited.data, 0);
 
 	if (!compTex) {
 		obs_log(LOG_ERROR, "Bria removal filter: failed to create composited texture");

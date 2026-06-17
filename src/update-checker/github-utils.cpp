@@ -10,8 +10,7 @@
 #include "github-utils.hpp"
 #include "plugin-support.h"
 
-static const std::string GITHUB_LATEST_RELEASE_URL =
-	"https://github.com/Bria-AI/obs-backgroundremoval/releases/latest";
+static const std::string GITHUB_LATEST_RELEASE_URL = "https://github.com/Bria-AI/obs-backgroundremoval/releases/latest";
 
 void github_utils_get_release_information(std::function<void(github_utils_release_information)> callback)
 {

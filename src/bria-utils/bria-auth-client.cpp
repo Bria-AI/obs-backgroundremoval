@@ -115,8 +115,7 @@ void BriaAuthClient::logout()
 	// Fire-and-forget: notify the server in the background so we don't block the UI.
 	if (!sessionId.empty() && !encToken.empty()) {
 		std::thread([sid = std::move(sessionId), enc = std::move(encToken)]() {
-			const std::string body =
-				"{\"plugin_auth_id\":\"" + sid + "\",\"token\":\"" + enc + "\"}";
+			const std::string body = "{\"plugin_auth_id\":\"" + sid + "\",\"token\":\"" + enc + "\"}";
 			httpPost(std::string(BASE_URL) + "/logout", body);
 		}).detach();
 	}
@@ -276,7 +275,8 @@ void BriaAuthClient::runPollLoop(std::string sessionId)
 					if (renewTokenRequest(sessionId, stored, newEnc)) {
 						encToken = newEnc;
 					} else {
-						obs_log(LOG_WARNING, "Bria SSO: token renewal failed, please sign in again");
+						obs_log(LOG_WARNING,
+							"Bria SSO: token renewal failed, please sign in again");
 						clearAuth();
 						saveToConfig();
 						notifyCallbacks();
@@ -350,8 +350,7 @@ bool BriaAuthClient::pollOnce(const std::string &sessionId, std::string &outEncT
 bool BriaAuthClient::renewTokenRequest(const std::string &sessionId, const std::string &encToken,
 				       std::string &outEncToken)
 {
-	const std::string body =
-		"{\"plugin_auth_id\":\"" + sessionId + "\",\"token\":\"" + encToken + "\"}";
+	const std::string body = "{\"plugin_auth_id\":\"" + sessionId + "\",\"token\":\"" + encToken + "\"}";
 	const std::string resp = httpPost(std::string(BASE_URL) + "/renew_token", body);
 
 	if (resp.empty()) {
@@ -366,7 +365,6 @@ bool BriaAuthClient::renewTokenRequest(const std::string &sessionId, const std::
 	outEncToken = newToken;
 	return true;
 }
-
 
 bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) const
 {
@@ -394,17 +392,16 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 		normalised += '=';
 	}
 
-	obs_log(LOG_DEBUG, "Bria SSO decrypt: token len=%zu normalised_len=%zu", encToken.size(),
-		normalised.size());
+	obs_log(LOG_DEBUG, "Bria SSO decrypt: token len=%zu normalised_len=%zu", encToken.size(), normalised.size());
 
 	// Base64-decode
 	size_t decodedLen = 0;
 	const size_t maxDecoded = (normalised.size() * 3) / 4 + 4;
 	std::vector<uint8_t> decoded(maxDecoded);
 
-	const int b64Ret =
-		mbedtls_base64_decode(decoded.data(), decoded.size(), &decodedLen,
-				      reinterpret_cast<const uint8_t *>(normalised.data()), normalised.size());
+	const int b64Ret = mbedtls_base64_decode(decoded.data(), decoded.size(), &decodedLen,
+						 reinterpret_cast<const uint8_t *>(normalised.data()),
+						 normalised.size());
 	if (b64Ret != 0) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: base64 decode failed (ret=%d, token_len=%zu)", b64Ret,
 			normalised.size());
@@ -434,7 +431,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 
 	uint8_t key[32];
 #ifndef BRIA_SSO_SECRET
-#	error "BRIA_SSO_SECRET must be defined at compile time. Set the BRIA_SSO_SECRET env var before running cmake."
+#error "BRIA_SSO_SECRET must be defined at compile time. Set the BRIA_SSO_SECRET env var before running cmake."
 #endif
 	static const char secret[] = BRIA_SSO_SECRET;
 	mbedtls_sha256(reinterpret_cast<const uint8_t *>(secret), sizeof(secret) - 1, key, 0);
@@ -449,8 +446,8 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 	}
 
 	std::vector<uint8_t> plaintext(ciphertextLen);
-	const int aesRet = mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, ciphertextLen, iv, ciphertext,
-						  plaintext.data());
+	const int aesRet =
+		mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, ciphertextLen, iv, ciphertext, plaintext.data());
 	mbedtls_aes_free(&aes);
 
 	if (aesRet != 0) {
