@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * @file @kaito-tokyo/minisign-verify/verify-js/base64.mjs
+ * @file @/minisign-verify/verify-js/base64.mjs
  * Base64 utilities for Modern JavaScript environments.
  * @version 0.1.3
  * @since 2026-03-29

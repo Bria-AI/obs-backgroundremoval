@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * @file @kaito-tokyo/minisign-verify/verify-js/index.mjs
+ * @file @/minisign-verify/verify-js/index.mjs
  * Easy-to-use wrapper around the Minisign verifier for Node.js and compatible environments.
  * @version 0.1.3
  * @since 2026-03-29
@@ -35,7 +35,7 @@ import {
  *
  * @example
  * ```js
- * import { MinisignVerifier } from "@kaito-tokyo/minisign-verify";
+ * import { MinisignVerifier } from "@/minisign-verify";
  *
  * const pubkeyStrings = ["PUBKEYBASE64STRING"];
  * const verifier = await MinisignVerifier.create(pubkeyStrings);
