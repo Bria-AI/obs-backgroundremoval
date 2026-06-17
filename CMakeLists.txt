@@ -176,7 +176,7 @@ find_package(ixwebsocket CONFIG REQUIRED)
 
 # Inject the SSO shared secret from the environment (supplied via GitHub secret at CI configure time).
 # Developers must export BRIA_SSO_SECRET before running cmake locally.
-if(DEFINED ENV{BRIA_SSO_SECRET})
+if(DEFINED ENV{BRIA_SSO_SECRET} AND NOT "$ENV{BRIA_SSO_SECRET}" STREQUAL "")
   set(_BRIA_SSO_SECRET_VALUE "$ENV{BRIA_SSO_SECRET}")
 else()
   message(FATAL_ERROR
