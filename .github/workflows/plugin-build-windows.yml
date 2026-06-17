@@ -115,6 +115,28 @@ jobs:
           $vcpkgPath = "$env:VCPKG_ROOT\vcpkg.exe"
           & $vcpkgPath install --x-install-root=.\.deps_vendor\vcpkg_installed --triplet=x64-windows-static-md-obs
 
+      - name: Download dependencies (Windows)
+        shell: pwsh
+        env:
+          PATH: '${{ env.FILTERED_PATH }}'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $PSNativeCommandUseErrorActionPreference = $true
+
+          cmake -P ./scripts/download_deps.cmake
+
+      - name: Build libobs (Windows)
+        shell: pwsh
+        env:
+          PATH: '${{ env.FILTERED_PATH }}'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $PSNativeCommandUseErrorActionPreference = $true
+
+          ./scripts/build_libobs_windows.ps1
+
       - name: Configure (Windows x64)
         shell: pwsh
         env:

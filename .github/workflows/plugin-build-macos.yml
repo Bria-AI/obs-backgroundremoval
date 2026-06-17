@@ -131,6 +131,27 @@ jobs:
           )
           env -i "${vars[@]}" ./vcpkg/vcpkg install --triplet=x64-osx-obs --x-install-root=./.deps_vendor/vcpkg_installed_x64
 
+      - name: Lipo vcpkg (macOS)
+        shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
+        run: |
+          ./scripts/lipo_vcpkg_macos.sh \
+            ./.deps_vendor/vcpkg_installed_universal/universal-osx-obs \
+            ./.deps_vendor/vcpkg_installed_arm64/arm64-osx-obs \
+            ./.deps_vendor/vcpkg_installed_x64/x64-osx-obs
+
+      - name: Download dependencies (macOS)
+        shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
+        run: |
+          cmake -P ./scripts/download_deps.cmake
+
+      - name: Build libobs (macOS universal)
+        shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
+        env:
+          BASH_ENV: '${{ env.CLEAN_BASH_ENV }}'
+          PATH: '${{ env.FILTERED_PATH }}'
+        run: |
+          ./scripts/build_libobs_macos.sh
+
       - name: Configure (macOS universal)
         shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
         env:
