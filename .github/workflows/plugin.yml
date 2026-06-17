@@ -42,6 +42,7 @@ jobs:
     with:
       VCPKG_BINARY_SOURCES: ${{ needs.config.outputs.VCPKG_BINARY_SOURCES }}
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
+    secrets: inherit
 
   build-macos:
     needs: config
@@ -63,6 +64,7 @@ jobs:
     with:
       VCPKG_BINARY_SOURCES: ${{ needs.config.outputs.VCPKG_BINARY_SOURCES }}
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
+    secrets: inherit
 
   accept-plugin:
     name: Accept Plugin CI

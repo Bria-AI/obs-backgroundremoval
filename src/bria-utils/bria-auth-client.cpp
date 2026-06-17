@@ -433,7 +433,10 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 	}
 
 	uint8_t key[32];
-	static const char secret[] = "+__BRIA.ai__+";
+#ifndef BRIA_SSO_SECRET
+#	error "BRIA_SSO_SECRET must be defined at compile time. Set the BRIA_SSO_SECRET env var before running cmake."
+#endif
+	static const char secret[] = BRIA_SSO_SECRET;
 	mbedtls_sha256(reinterpret_cast<const uint8_t *>(secret), sizeof(secret) - 1, key, 0);
 
 	// AES-256-CBC decrypt

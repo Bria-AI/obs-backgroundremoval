@@ -174,6 +174,19 @@ find_package(MbedTLS CONFIG REQUIRED)
 ## ixwebsocket (Bria streaming RMBG)
 find_package(ixwebsocket CONFIG REQUIRED)
 
+# Inject the SSO shared secret from the environment (supplied via GitHub secret at CI configure time).
+# Developers must export BRIA_SSO_SECRET before running cmake locally.
+if(DEFINED ENV{BRIA_SSO_SECRET})
+  set(_BRIA_SSO_SECRET_VALUE "$ENV{BRIA_SSO_SECRET}")
+else()
+  message(FATAL_ERROR
+    "Environment variable BRIA_SSO_SECRET is not set.\n"
+    "Export it before running cmake:\n"
+    "  export BRIA_SSO_SECRET=<value>   # Linux/macOS\n"
+    "  $env:BRIA_SSO_SECRET='<value>'   # PowerShell"
+  )
+endif()
+
 # Plugin build definitions
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
@@ -193,6 +206,8 @@ target_link_libraries(
 )
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTOMOC ON)
+
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "BRIA_SSO_SECRET=\"${_BRIA_SSO_SECRET_VALUE}\"")
 
 target_sources(
   ${CMAKE_PROJECT_NAME}

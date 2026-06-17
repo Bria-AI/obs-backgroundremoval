@@ -20,6 +20,10 @@ on:
         required: true
         type: string
 
+    secrets:
+      BRIA_SSO_SECRET:
+        required: true
+
 permissions: {}
 
 jobs:
@@ -141,6 +145,7 @@ jobs:
         shell: pwsh
         env:
           PATH: '${{ env.FILTERED_PATH }}'
+          BRIA_SSO_SECRET: '${{ secrets.BRIA_SSO_SECRET }}'
         run: |
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
