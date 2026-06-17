@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, implment-bria-remove-background-sourcer]
+    branches: [main]
   schedule:
     - cron: "43 2 * * *" # Every day at 2:43 UTC
   workflow_dispatch:
