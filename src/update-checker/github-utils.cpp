@@ -1,5 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
-// SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -12,8 +11,7 @@
 #include "github-utils.hpp"
 #include "plugin-support.h"
 
-static const std::string GITHUB_LATEST_RELEASE_URL =
-	"https://api.github.com/repos/royshil/obs-backgroundremoval/releases/latest";
+static const std::string GITHUB_LATEST_RELEASE_URL = "https://github.com/Bria-AI/obs-backgroundremoval/releases/latest";
 
 void github_utils_get_release_information(std::function<void(github_utils_release_information)> callback)
 {

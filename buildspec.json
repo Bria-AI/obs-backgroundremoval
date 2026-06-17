@@ -33,13 +33,13 @@
   },
   "platformConfig": {
     "macos": {
-      "bundleId": "com.royshilkrot.obs-backgroundremoval"
+      "bundleId": "ai.bria.obs-backgroundremoval"
     }
   },
   "name": "obs-backgroundremoval",
-  "displayName": "OBS Background Removal",
-  "version": "1.4.0",
-  "author": "Roy Shilkrot",
-  "website": "https://github.com/royshil/obs-backgroundremoval/releases",
-  "email": "roy.shil@gmail.com"
+  "displayName": "Bria Background Removal for OBS",
+  "version": "1.0.0",
+  "author": "Bria AI",
+  "website": "https://bria.ai",
+  "email": "support@bria.ai"
 }

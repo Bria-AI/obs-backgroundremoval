@@ -5,16 +5,6 @@
     "baseline": "f7f94113c3b629c01df3d49d5edebae6d598c78c",
     "repository": "https://github.com/microsoft/vcpkg"
   },
-  "registries": [
-    {
-      "kind": "git",
-      "baseline": "a0f06e896a158885fb426e5a91afe72b9b10526b",
-      "repository": "https://github.com/kaito-tokyo/vcpkg-registry-kaito-tokyo",
-      "packages": [
-        "wolfssl"
-      ]
-    }
-  ],
   "overlay-triplets": [
     "./vcpkg-triplets"
   ]

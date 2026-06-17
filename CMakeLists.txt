@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -88,8 +88,6 @@ if(MSVC)
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-x64"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-x64"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x64/Release/vcpkg_installed/x64-windows-static-md"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x64-prefix"
   )
 elseif(APPLE)
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos")
@@ -100,18 +98,10 @@ elseif(APPLE)
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-universal"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-universal"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_universal_vcpkg_installed/universal-osx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_universal-prefix"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/vcpkg_installed_universal/universal-osx-obs"
   )
 else()
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/linux")
-  list(
-    PREPEND
-    CMAKE_PREFIX_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x86_64/Release/vcpkg_installed/x64-linux"
-    "${CMAKE_CURRENT_SOURCE_DIR}/.deps_vendor/ort_x86_64-prefix"
-  )
 endif()
 
 if(VCPKG_TARGET_TRIPLET STREQUAL "")
@@ -135,6 +125,7 @@ find_package(PkgConfig QUIET)
 ## OBS and Qt
 find_package(libobs REQUIRED)
 find_package(obs-frontend-api REQUIRED)
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 ## CURL
 find_package(CURL CONFIG QUIET)
@@ -174,46 +165,65 @@ if(NOT TARGET OpenCV::opencv_imgproc)
   add_library(OpenCV::opencv_imgproc ALIAS opencv_imgproc)
 endif()
 
-## ONNX Runtime
-find_package(onnxruntime CONFIG)
+## libjpeg-turbo (JPEG encode/decode for Bria frames — avoids opencv_imgcodecs)
+find_package(JPEG REQUIRED)
 
-if(NOT onnxruntime_FOUND AND PkgConfig_FOUND)
-  pkg_check_modules(PC_onnxruntime onnxruntime IMPORTED_TARGET)
-  if(PC_onnxruntime_FOUND)
-    add_library(onnxruntime::onnxruntime ALIAS PkgConfig::PC_onnxruntime)
-    set(onnxruntime_FOUND TRUE)
-  endif()
-endif()
+## mbedTLS (AES-256-CBC + SHA256 for Bria SSO token decryption)
+find_package(MbedTLS CONFIG REQUIRED)
 
-if(NOT onnxruntime_FOUND)
-  message(FATAL_ERROR "ONNX Runtime not found via CMake or pkg-config.")
-endif()
+## ixwebsocket (Bria streaming RMBG)
+find_package(ixwebsocket CONFIG REQUIRED)
 
-if(NOT TARGET onnxruntime::onnxruntime)
-  add_library(onnxruntime::onnxruntime ALIAS onnxruntime)
+# Inject the SSO shared secret from the environment (supplied via GitHub secret at CI configure time).
+# Developers must export BRIA_SSO_SECRET before running cmake locally.
+if(DEFINED ENV{BRIA_SSO_SECRET} AND NOT "$ENV{BRIA_SSO_SECRET}" STREQUAL "")
+  set(_BRIA_SSO_SECRET_VALUE "$ENV{BRIA_SSO_SECRET}")
+else()
+  message(
+    FATAL_ERROR
+    "Environment variable BRIA_SSO_SECRET is not set.\n"
+    "Export it before running cmake:\n"
+    "  export BRIA_SSO_SECRET=<value>   # Linux/macOS\n"
+    "  $env:BRIA_SSO_SECRET='<value>'   # PowerShell"
+  )
 endif()
 
 # Plugin build definitions
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE onnxruntime::onnxruntime)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Widgets)
 add_subdirectory(src/update-checker/CurlClient)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE CurlClient OpenCV::opencv_core OpenCV::opencv_imgproc)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE
+    CurlClient
+    CURL::libcurl
+    OpenCV::opencv_core
+    OpenCV::opencv_imgproc
+    JPEG::JPEG
+    ixwebsocket::ixwebsocket
+    MbedTLS::mbedcrypto
+)
+
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTOMOC ON)
+
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "BRIA_SSO_SECRET=\"${_BRIA_SSO_SECRET_VALUE}\"")
 
 target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
     src/plugin-main.c
-    src/ort-utils/ort-session-utils.cpp
+    src/bria-welcome-dialog.cpp
     src/obs-utils/obs-utils.cpp
     src/obs-utils/obs-config-utils.cpp
     src/update-checker/github-utils.cpp
     src/update-checker/update-checker.cpp
-    src/background-filter-info.c
-    src/background-filter.cpp
-    src/enhance-filter.cpp
-    src/enhance-filter-info.c
+    src/bria-utils/bria-frame-protocol.cpp
+    src/bria-utils/bria-rmbg-client.cpp
+    src/bria-utils/bria-auth-client.cpp
+    src/bria-filter.cpp
+    src/bria-filter-info.c
 )
 target_compile_options(
   ${CMAKE_PROJECT_NAME}
@@ -226,7 +236,14 @@ if(APPLE)
     PRIVATE "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/src/exported_symbols_macos.txt"
   )
 elseif(MSVC)
-  target_sources(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/exported_symbols_windows.def")
+  target_sources(
+    ${CMAKE_PROJECT_NAME}
+    PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/exported_symbols_windows.def"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/msvc-stl-compat.cpp"
+  )
+  # bcrypt: required by mbedcrypto (ixwebsocket TLS) for BCryptGenRandom
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE bcrypt)
 else()
   target_link_options(
     ${CMAKE_PROJECT_NAME}

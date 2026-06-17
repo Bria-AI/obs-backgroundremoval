@@ -1,15 +1,15 @@
 {
   "display_name": "OBS Background Removal",
-  "id": "com.royshilkrot.obs-backgroundremoval",
+  "id": "com.bria.obs-backgroundremoval",
   "version": "1.4.0",
   "name": "obs-backgroundremoval",
   "description": "OBS Plugin: Portrait Background Removal / Virtual Green-screen and Low-Light Enhancement",
   "long_description": "A plugin for OBS Studio that allows you to replace the background in portrait images and video, as well as enhance low-light scenes.",
   "os_arch": "windows-x64, macos, ubuntu-x86_64",
   "urls": {
-    "repository": "https://github.com/royshil/obs-backgroundremoval",
-    "website": "https://github.com/royshil/obs-backgroundremoval/releases",
-    "support": "https://github.com/royshil/obs-backgroundremoval/issues"
+    "repository": "https://github.com/Bria-AI/obs-backgroundremoval",
+    "website": "https://bria.ai/",
+    "support": "https://github.com/Bria-AI/obs-backgroundremoval"
   },
   "has_banner": true,
   "has_icon": true
