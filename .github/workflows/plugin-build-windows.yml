@@ -24,6 +24,8 @@ on:
     secrets:
       BRIA_SSO_SECRET:
         required: true
+      BRIA_POSTHOG_API_KEY:
+        required: true
 
 permissions: { }
 
@@ -147,6 +149,7 @@ jobs:
         env:
           PATH: '${{ env.FILTERED_PATH }}'
           BRIA_SSO_SECRET: '${{ secrets.BRIA_SSO_SECRET }}'
+          BRIA_POSTHOG_API_KEY: '${{ secrets.BRIA_POSTHOG_API_KEY }}'
         run: |
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest

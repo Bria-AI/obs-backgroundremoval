@@ -24,6 +24,8 @@ on:
     secrets:
       BRIA_SSO_SECRET:
         required: true
+      BRIA_POSTHOG_API_KEY:
+        required: true
 
 permissions: { }
 
@@ -104,8 +106,9 @@ jobs:
         env:
           BASH_ENV: '${{ env.CLEAN_BASH_ENV }}'
           PATH: '${{ env.FILTERED_PATH }}'
-          KEEP_ENV_VARS: 'BRIA_SSO_SECRET'
+          KEEP_ENV_VARS: 'BRIA_SSO_SECRET,BRIA_POSTHOG_API_KEY'
           BRIA_SSO_SECRET: '${{ secrets.BRIA_SSO_SECRET }}'
+          BRIA_POSTHOG_API_KEY: '${{ secrets.BRIA_POSTHOG_API_KEY }}'
         run: |
           cmake --preset ubuntu-ci-x86_64
 
