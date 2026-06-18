@@ -23,6 +23,10 @@
 #include "bria-utils/bria-auth-client.hpp"
 #include "bria-utils/bria-rmbg-client.hpp"
 #include "FilterData.hpp"
+#include "bria-analytics.hpp"
+
+#include <QDesktopServices>
+#include <QUrl>
 
 // ---------------------------------------------------------------------------
 // Internal constants — not exposed as settings for this filter
@@ -97,11 +101,6 @@ static bool bria_auth_update_ui(obs_properties_t *props, obs_property_t * /*p*/,
 		} else {
 			text = obs_module_text("BriaNotSignedIn");
 		}
-		// Append the report-issue link on the same row as the auth status.
-		// OBS sets setOpenExternalLinks(true) on OBS_TEXT_INFO labels, so the
-		// anchor tag is rendered as a real clickable link — no callback needed.
-		text += "  &nbsp;&nbsp;<a href='https://github.com/Bria-AI/obs-backgroundremoval/issues'>"
-			"Report an issue</a>";
 		obs_property_set_description(status, text.c_str());
 	}
 
@@ -115,8 +114,19 @@ static bool bria_auth_update_ui(obs_properties_t *props, obs_property_t * /*p*/,
 static bool bria_filter_sign_in_clicked(obs_properties_t *props, obs_property_t *p, void *data)
 {
 	UNUSED_PARAMETER(data);
+	BriaAnalytics::instance().capture("obs_plugin_sign_in_clicked");
 	BriaAuthClient::instance().startLoginFlow();
 	return bria_auth_update_ui(props, p, nullptr);
+}
+
+static bool bria_filter_report_issue_clicked(obs_properties_t *props, obs_property_t *p, void *data)
+{
+	UNUSED_PARAMETER(props);
+	UNUSED_PARAMETER(p);
+	UNUSED_PARAMETER(data);
+	BriaAnalytics::instance().capture("obs_plugin_report_issue_clicked");
+	QDesktopServices::openUrl(QUrl("https://github.com/Bria-AI/obs-backgroundremoval/issues"));
+	return false;
 }
 
 static bool bria_filter_sign_out_clicked(obs_properties_t *props, obs_property_t *p, void *data)
@@ -140,6 +150,9 @@ obs_properties_t *bria_filter_properties(void *data)
 					  return bria_auth_update_ui(p2, prop, nullptr);
 				  });
 	obs_properties_add_button(props, "btn_sign_out", obs_module_text("BriaSignOut"), bria_filter_sign_out_clicked);
+
+	obs_properties_add_button(props, "btn_report_issue", obs_module_text("BriaReportIssue"),
+				  bria_filter_report_issue_clicked);
 
 	obs_properties_add_bool(props, "stop_when_source_is_inactive",
 				obs_module_text("Stop filter when source is inactive"));
@@ -275,6 +288,14 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		tf->authCallbackHandle =
 			BriaAuthClient::instance().addCallback([weakTf = std::weak_ptr<bria_removal_filter>(tf)]() {
 				const std::string token = BriaAuthClient::instance().getApiToken();
+				const std::string email = BriaAuthClient::instance().getUserEmail();
+				if (!email.empty()) {
+					BriaAnalytics::instance().identify(
+						email,
+						BriaAuthClient::instance().getUserName(),
+						BriaAuthClient::instance().getOrgId(),
+						BriaAuthClient::instance().getOrgName());
+				}
 				std::thread([weakTf, token]() {
 					auto lockedTf = weakTf.lock();
 					if (!lockedTf) {
@@ -292,6 +313,19 @@ void bria_filter_update(void *data, obs_data_t *settings)
 				}).detach();
 			});
 		tf->authCallbackRegistered = true;
+	}
+
+	// For sessions restored from config (OBS restart), the auth callback
+	// won't fire again — identify here so PostHog gets the user identity.
+	{
+		const std::string email = BriaAuthClient::instance().getUserEmail();
+		if (!email.empty()) {
+			BriaAnalytics::instance().identify(
+				email,
+				BriaAuthClient::instance().getUserName(),
+				BriaAuthClient::instance().getOrgId(),
+				BriaAuthClient::instance().getOrgName());
+		}
 	}
 
 	obs_enter_graphics();
@@ -353,6 +387,7 @@ void bria_filter_deactivate(void *data)
 void *bria_filter_create(obs_data_t *settings, obs_source_t *source)
 {
 	obs_log(LOG_INFO, "Bria removal filter created");
+	BriaAnalytics::instance().capture("obs_plugin_filter_added");
 	try {
 		auto instance = std::make_shared<bria_removal_filter>();
 

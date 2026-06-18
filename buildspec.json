@@ -33,10 +33,10 @@
   },
   "platformConfig": {
     "macos": {
-      "bundleId": "ai.bria.obs-backgroundremoval"
+      "bundleId": "ai.bria.bria-obs-backgroundremoval"
     }
   },
-  "name": "obs-backgroundremoval",
+  "name": "bria-obs-backgroundremoval",
   "displayName": "Bria Background Removal for OBS",
   "version": "1.0.0",
   "author": "Bria AI",

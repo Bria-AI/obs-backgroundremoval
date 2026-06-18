@@ -1,71 +1,78 @@
-# OBS Plugin: Bria Background Removal
+# Bria V-RMBG 3.0 - OBS Background Removal Plugin
 
-An OBS Studio plugin that removes the background from your video in real time using [Bria's](https://bria.ai)
-cloud-based AI API — no local ML models required.
+> Real-time AI background removal for OBS Studio
+
+---
+
+## Overview
+
+The **Bria V-RMBG 3.0 OBS Plugin** adds a native Effect Filter to OBS Studio that removes your video background in real time using Bria's V-RMBG 3.0 model. Your webcam frames are streamed to Bria's inference endpoint, returned background-removed, and rendered directly into your OBS scene - no green screen, no local GPU processing required.
+
+This plugin is built on Bria's commercially licensed AI models, making it safe for any stream, broadcast, or commercial production.
+
+**Key features:**
+
+- �� **Real-time background removal** - live video processed frame-by-frame via Bria's streaming endpoint
+- �� **Non-binary alpha edges** - soft, natural cutouts instead of hard masks; hair and fine details blend smoothly
+- ��️ **Native OBS filter** - integrates as a standard Effect Filter on any camera source
+
+---
 
 ## Requirements
 
-- OBS Studio 31.1.1 or later
-- A Bria account (sign up at [bria.ai](https://bria.ai))
-- Internet connection (background removal runs on Bria's cloud)
+| Requirement         | Details                                                                         |
+| ------------------- | ------------------------------------------------------------------------------- |
+| OBS Studio          | 31.0 or later - [download here](https://obsproject.com/download)                |
+| Bria account        | Required for authentication - [create one here](https://platform.bria.ai/login) |
+| Operating system    | Windows 10/11 (x64) · macOS 12+ (arm64 and x86_64)                              |
+| Internet connection | Required - frames are processed in Bria's cloud in real time                    |
+
+---
 
 ## Installation
 
 ### Windows
 
-1. Download the latest `.zip` from the [releases page](../../releases).
-2. Extract to `%ProgramFiles%\obs-studio\`.
-3. Restart OBS Studio.
+1. Download the `.zip` from the [Releases page](https://github.com/bria-ai/obs-background-removal/releases).
+2. Extract the ZIP and locate the `obs-backgroundremoval` folder inside.
+3. Copy it into `C:\ProgramData\obs-studio\plugins\` (create the `plugins` folder if it doesn't exist).
+4. Restart OBS Studio.
+
+> **Updating from a previous version?** The ZIP includes `remove-old-installation.bat`. Right-click → Run as administrator before copying the new files.
 
 ### macOS
 
-1. Download the latest `.pkg` from the [releases page](../../releases).
-2. Run the installer.
+1. Download `obs-backgroundremoval-3.0-macos-universal.pkg` from the [Releases page](https://github.com/bria-ai/obs-background-removal/releases).
+2. Open the `.pkg` file and follow the installer steps.
 3. Restart OBS Studio.
 
-### Linux
+---
 
-1. Download the latest `.deb` from the [releases page](../../releases).
-2. `sudo dpkg -i obs-backgroundremoval-*.deb`
-3. Restart OBS Studio.
+## Getting Started
 
-## Usage
+### 1. Add your camera source
 
-1. In OBS, right-click a video source → **Filters** → **+** → **Bria - Remove Background**.
-2. Click **Sign in with Bria** and complete the browser login.
-3. Once signed in, background removal activates automatically on every frame.
+1. In the **Sources** panel, click **+** and choose **Video Capture Device**.
+2. Name it, click **OK**, select your webcam, and click **OK** again.
 
-## How it works
+### 2. Apply the Bria background removal filter
 
-Frames are JPEG-encoded and streamed to Bria's background removal API over a persistent WebSocket connection. Returned
-alpha masks are composited CPU-side, and the final BGRA frame (transparent background) is uploaded to a GPU texture for
-OBS rendering.
+1. Right-click your camera source → **Filters**.
+2. In the Filters window, click **+** under **Effect Filters**.
+3. Choose **Bria – Remove Background** from the list.
+4. Click **OK**.
 
-## Building from source
+### 3. Sign in to Bria (one time only)
 
-### Dependencies
+1. In the filter panel, click **Sign in with Bria**.
+2. Your browser opens - complete the login at [platform.bria.ai/login](https://platform.bria.ai/login).
+3. Return to OBS. The status updates to **"Signed in as [your email]."**
+4. Your camera now appears with the background removed. ✅
 
-| Library                 | Purpose                              |
-|-------------------------|--------------------------------------|
-| OBS Studio 31.1.1+      | Host API                             |
-| Qt 6                    | UI (sign-in dialog, welcome screen)  |
-| OpenCV (core + imgproc) | Frame buffer handling                |
-| libjpeg-turbo           | JPEG encode/decode for Bria frames   |
-| ixwebsocket             | WebSocket streaming to Bria API      |
-| MbedTLS (mbedcrypto)    | AES-256-CBC decryption of SSO tokens |
-| libcurl                 | Update checker HTTP requests         |
+> Don't have a Bria account yet? [Create one here](https://platform.bria.ai/login) - it only takes a minute.
 
-### Build (Windows example)
+---
 
-```bash
-cmake --preset windows-x64
-cmake --build --preset windows-x64
-```
+## Reporting Issues
 
-See the [CI workflow](.github/workflows/) for macOS and Linux build steps.
-
-## License
-
-> SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>  
->
-> SPDX-License-Identifier: GPL-3.0-or-later 
+Found a bug or unexpected behavior? Use the **"Report an issue"** link inside the OBS Filters panel (visible when the Bria – Remove Background filter is selected), or [open a GitHub Issue](https://github.com/bria-ai/obs-background-removal/issues) directly.

@@ -153,6 +153,18 @@ std::string BriaAuthClient::getUserEmail() const
 	return authData_.userEmail;
 }
 
+std::string BriaAuthClient::getOrgId() const
+{
+	std::lock_guard<std::mutex> lock(stateMutex_);
+	return authData_.orgId;
+}
+
+std::string BriaAuthClient::getUserName() const
+{
+	std::lock_guard<std::mutex> lock(stateMutex_);
+	return authData_.userName;
+}
+
 BriaAuthClient::CallbackHandle BriaAuthClient::addCallback(Callback cb)
 {
 	std::lock_guard<std::mutex> lock(callbackMutex_);

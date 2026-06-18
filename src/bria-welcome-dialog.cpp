@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "bria-welcome-dialog.h"
+#include "bria-analytics.hpp"
 
 #include <obs-frontend-api.h>
 
@@ -131,11 +132,21 @@ extern "C" void bria_show_welcome_dialog(void)
 	btnRow->addWidget(btnStart);
 	root->addLayout(btnRow);
 
-	QObject::connect(btnStart, &QPushButton::clicked, &dialog, &QDialog::accept);
+	QObject::connect(btnStart, &QPushButton::clicked, [&dialog]() {
+		BriaAnalytics::instance().capture("obs_plugin_get_started_clicked",
+						  {{"source", "welcome_dialog"}});
+		dialog.accept();
+	});
 	QObject::connect(btnGuide, &QPushButton::clicked, [&dialog]() {
+		BriaAnalytics::instance().capture("obs_plugin_view_setup_guide_clicked",
+						  {{"source", "welcome_dialog"}});
 		QDesktopServices::openUrl(QUrl(SETUP_GUIDE_URL));
 		dialog.accept();
 	});
 
 	dialog.exec();
+
+	if (dialog.result() == QDialog::Rejected)
+		BriaAnalytics::instance().capture("obs_plugin_welcome_dialog_dismissed",
+						  {{"source", "welcome_dialog"}});
 }
