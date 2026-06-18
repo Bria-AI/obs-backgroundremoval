@@ -227,6 +227,7 @@ target_compile_definitions(
   PRIVATE
     "BRIA_SSO_SECRET=\"${_BRIA_SSO_SECRET_VALUE}\""
     "BRIA_POSTHOG_API_KEY=\"${_BRIA_POSTHOG_API_KEY_VALUE}\""
+    "PLUGIN_VERSION_STR=\"${PLUGIN_VERSION}\""
 )
 
 target_sources(
