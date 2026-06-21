@@ -172,5 +172,5 @@ jobs:
           path: |
             release/*-windows-x64.zip
             release/*-windows-x64-pdb.zip
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
