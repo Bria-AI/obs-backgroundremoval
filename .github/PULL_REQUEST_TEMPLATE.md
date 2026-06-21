@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 ## Description
@@ -21,8 +21,8 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Checklist
 
-- [ ] I have run `ruff format` and `ruff check` locally
-- [ ] I have run `pyright` and fixed any type errors
+- [ ] I have run `clang-format` and fixed any formatting issues
+- [ ] CMake configuration builds cleanly on my platform
 - [ ] I have added tests for my changes (if applicable)
 - [ ] All existing tests pass locally
 - [ ] My PR title follows the [Conventional Commits](https://www.conventionalcommits.org/) format
