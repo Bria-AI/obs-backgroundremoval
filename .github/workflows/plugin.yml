@@ -45,6 +45,7 @@ jobs:
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
     secrets:
       BRIA_SSO_SECRET: ${{ secrets.BRIA_SSO_SECRET }}
+      BRIA_POSTHOG_API_KEY: ${{ secrets.BRIA_POSTHOG_API_KEY }}
 
   build-macos:
     needs: config
@@ -59,6 +60,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app
     secrets:
       BRIA_SSO_SECRET: ${{ secrets.BRIA_SSO_SECRET }}
+      BRIA_POSTHOG_API_KEY: ${{ secrets.BRIA_POSTHOG_API_KEY }}
       MACOS_NOTARIZATION_PASSWORD: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
       MACOS_NOTARIZATION_USERNAME: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
       MACOS_SIGNING_APPLICATION_IDENTITY: ${{ secrets.MACOS_SIGNING_APPLICATION_IDENTITY }}
@@ -76,6 +78,7 @@ jobs:
       vcpkg-version: ${{ needs.config.outputs.VCPKG_VERSION }}
     secrets:
       BRIA_SSO_SECRET: ${{ secrets.BRIA_SSO_SECRET }}
+      BRIA_POSTHOG_API_KEY: ${{ secrets.BRIA_POSTHOG_API_KEY }}
 
   accept-plugin:
     name: Accept Plugin CI
