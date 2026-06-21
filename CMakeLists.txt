@@ -188,6 +188,20 @@ else()
   )
 endif()
 
+# Inject the PostHog API key from the environment (supplied via GitHub secret at CI configure time).
+# Developers must export BRIA_POSTHOG_API_KEY before running cmake locally.
+if(DEFINED ENV{BRIA_POSTHOG_API_KEY} AND NOT "$ENV{BRIA_POSTHOG_API_KEY}" STREQUAL "")
+  set(_BRIA_POSTHOG_API_KEY_VALUE "$ENV{BRIA_POSTHOG_API_KEY}")
+else()
+  message(
+    FATAL_ERROR
+    "Environment variable BRIA_POSTHOG_API_KEY is not set.\n"
+    "Export it before running cmake:\n"
+    "  export BRIA_POSTHOG_API_KEY=<value>   # Linux/macOS\n"
+    "  $env:BRIA_POSTHOG_API_KEY='<value>'   # PowerShell"
+  )
+endif()
+
 # Plugin build definitions
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
@@ -208,13 +222,20 @@ target_link_libraries(
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTOMOC ON)
 
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "BRIA_SSO_SECRET=\"${_BRIA_SSO_SECRET_VALUE}\"")
+target_compile_definitions(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE
+    "BRIA_SSO_SECRET=\"${_BRIA_SSO_SECRET_VALUE}\""
+    "BRIA_POSTHOG_API_KEY=\"${_BRIA_POSTHOG_API_KEY_VALUE}\""
+    "PLUGIN_VERSION_STR=\"${PLUGIN_VERSION}\""
+)
 
 target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
     src/plugin-main.c
     src/bria-welcome-dialog.cpp
+    src/bria-analytics.cpp
     src/obs-utils/obs-utils.cpp
     src/obs-utils/obs-config-utils.cpp
     src/update-checker/github-utils.cpp
@@ -251,4 +272,14 @@ else()
   )
 endif()
 
-set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_NAME})
+if(APPLE)
+  set(PLUGIN_OUTPUT_NAME "${PLUGIN_NAME}-macOS")
+elseif(WIN32)
+  set(PLUGIN_OUTPUT_NAME "${PLUGIN_NAME}-windowsOS")
+else()
+  set(PLUGIN_OUTPUT_NAME "${PLUGIN_NAME}")
+endif()
+set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_OUTPUT_NAME})
+if(APPLE)
+  set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_PRODUCT_NAME ${PLUGIN_OUTPUT_NAME})
+endif()

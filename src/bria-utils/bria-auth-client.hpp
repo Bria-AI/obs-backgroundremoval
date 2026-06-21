@@ -51,7 +51,9 @@ public:
 
 	std::string getApiToken() const;
 	std::string getOrgName() const;
+	std::string getOrgId() const;
 	std::string getUserEmail() const;
+	std::string getUserName() const;
 
 	// Register/unregister callbacks fired when auth state changes.
 	// Callbacks may be called from the background poll thread.
