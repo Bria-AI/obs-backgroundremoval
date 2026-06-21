@@ -577,7 +577,7 @@ std::string BriaAuthClient::httpGet(const std::string &url)
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteFunc);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, briaUserAgent().c_str());
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, briaUserAgent());
 	curl_easy_perform(curl);
 	curl_easy_cleanup(curl);
 	return response;
@@ -601,7 +601,7 @@ std::string BriaAuthClient::httpPost(const std::string &url, const std::string &
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteFunc);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, briaUserAgent().c_str());
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, briaUserAgent());
 
 	curl_easy_perform(curl);
 	curl_slist_free_all(headers);
