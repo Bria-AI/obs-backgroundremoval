@@ -207,7 +207,7 @@ jobs:
           PLUGIN_NAME: '${{ steps.buildspec.outputs.NAME }}'
           PLUGIN_VERSION: '${{ steps.buildspec.outputs.VERSION }}'
         run: |
-          PLUGIN_BUNDLE="release/payload/Library/Application Support/obs-studio/plugins/${PLUGIN_NAME}.plugin"
+          PLUGIN_BUNDLE="release/payload/Library/Application Support/obs-studio/plugins/${PLUGIN_NAME}-macOS.plugin"
 
           if ! [[ -d "${PLUGIN_BUNDLE}" ]]; then
             echo "ERROR: Plugin bundle not found at ${PLUGIN_BUNDLE}."
@@ -276,7 +276,7 @@ jobs:
           PLUGIN_NAME: '${{ steps.buildspec.outputs.NAME }}'
           PLUGIN_VERSION: '${{ steps.buildspec.outputs.VERSION }}'
         run: |
-          tar -cJf "$GITHUB_WORKSPACE/release/$PLUGIN_NAME-$PLUGIN_VERSION-macos-universal.dSYM.tar.xz" "$PLUGIN_NAME.plugin.dSYM"
+          tar -cJf "$GITHUB_WORKSPACE/release/$PLUGIN_NAME-$PLUGIN_VERSION-macos-universal.dSYM.tar.xz" "${PLUGIN_NAME}-macOS.plugin.dSYM"
 
       - name: Upload Plugin Binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
