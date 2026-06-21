@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Bria V-RMBG 3.0 - OBS Background Removal Plugin
 
 > Real-time AI background removal for OBS Studio

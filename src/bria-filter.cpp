@@ -287,11 +287,10 @@ void bria_filter_update(void *data, obs_data_t *settings)
 				const std::string token = BriaAuthClient::instance().getApiToken();
 				const std::string email = BriaAuthClient::instance().getUserEmail();
 				if (!email.empty()) {
-					BriaAnalytics::instance().identify(
-						email,
-						BriaAuthClient::instance().getUserName(),
-						BriaAuthClient::instance().getOrgId(),
-						BriaAuthClient::instance().getOrgName());
+					BriaAnalytics::instance().identify(email,
+									   BriaAuthClient::instance().getUserName(),
+									   BriaAuthClient::instance().getOrgId(),
+									   BriaAuthClient::instance().getOrgName());
 				}
 				std::thread([weakTf, token]() {
 					auto lockedTf = weakTf.lock();
@@ -317,11 +316,9 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	{
 		const std::string email = BriaAuthClient::instance().getUserEmail();
 		if (!email.empty()) {
-			BriaAnalytics::instance().identify(
-				email,
-				BriaAuthClient::instance().getUserName(),
-				BriaAuthClient::instance().getOrgId(),
-				BriaAuthClient::instance().getOrgName());
+			BriaAnalytics::instance().identify(email, BriaAuthClient::instance().getUserName(),
+							   BriaAuthClient::instance().getOrgId(),
+							   BriaAuthClient::instance().getOrgName());
 		}
 	}
 

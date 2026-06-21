@@ -27,8 +27,8 @@ public:
 	// Call after successful auth to link the anonymous distinct_id to the
 	// user's email, set user profile properties in PostHog, and switch all
 	// subsequent events to use email as distinct_id.
-	void identify(const std::string &email, const std::string &userName,
-		      const std::string &orgId, const std::string &orgName);
+	void identify(const std::string &email, const std::string &userName, const std::string &orgId,
+		      const std::string &orgName);
 
 private:
 	BriaAnalytics();

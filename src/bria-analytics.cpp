@@ -88,8 +88,8 @@ void BriaAnalytics::loadOrCreateDistinctId()
 // Public API
 // ---------------------------------------------------------------------------
 
-void BriaAnalytics::identify(const std::string &email, const std::string &userName,
-			      const std::string &orgId, const std::string &orgName)
+void BriaAnalytics::identify(const std::string &email, const std::string &userName, const std::string &orgId,
+			     const std::string &orgName)
 {
 	if (email.empty())
 		return;
@@ -172,8 +172,9 @@ void BriaAnalytics::postAsync(std::string payload)
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
 		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 		// Discard response body — never written to any buffer or log
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION,
-				 +[](char *, size_t size, size_t nmemb, void *) -> size_t { return size * nmemb; });
+		curl_easy_setopt(
+			curl, CURLOPT_WRITEFUNCTION,
+			+[](char *, size_t size, size_t nmemb, void *) -> size_t { return size * nmemb; });
 
 		curl_easy_perform(curl);
 
