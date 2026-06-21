@@ -17,7 +17,7 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
-static const char *SETUP_GUIDE_URL = "https://github.com/Bria-AI/obs-backgroundremoval#quick-start";
+static const char *SETUP_GUIDE_URL = "https://github.com/Bria-AI/obs-backgroundremoval/tree/support_analytics_and_update_readme?tab=readme-ov-file";
 
 extern "C" void bria_show_welcome_dialog(void)
 {
