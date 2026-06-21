@@ -1,7 +1,7 @@
 {
   "display_name": "Bria Background Removal for OBS",
   "id": "com.bria.bria-obs-backgroundremoval",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "name": "bria-obs-backgroundremoval",
   "description": "Real-time AI background removal powered by Bria V-RMBG 3.0.",
   "long_description": "## Bria Background Removal for OBS\n\nRemove your video background in real time using Bria's V-RMBG 3.0 model. Your webcam frames are streamed to Bria's cloud inference endpoint and returned background-removed directly into your OBS scene.\n\nBuilt on Bria's commercially licensed AI models, making it safe for any stream, broadcast, or commercial production.\n\n**Key features**\n- Real-time background removal — live video processed frame-by-frame\n- Non-binary alpha edges — soft, natural cutouts; hair and fine details preserved\n- Native OBS filter — integrates as a standard Effect Filter on any camera source\n- One-time sign-in — authenticate once with your Bria account; stays signed in\n\n**Requirements**\n- OBS Studio 31.0 or later\n- A free Bria account (create one at https://platform.bria.ai)\n- Windows 10/11 (x64) or macOS 12+ (arm64 / x86_64)\n- Internet connection (frames processed in Bria's cloud)\n\n**Getting started**\n1. Add a Video Capture Device source in OBS for your webcam.\n2. Right-click the source → Filters → click + → choose \"Bria – Remove Background\".\n3. In the filter panel, click \"Sign in with Bria\" and complete login in your browser.\n4. Your background is removed. Done.\n\nReport issues at https://github.com/Bria-AI/obs-backgroundremoval/issues",
