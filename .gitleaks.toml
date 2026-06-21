@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Gitleaks configuration for Bria-AI/obs-backgroundremoval.
+# Extends the built-in ruleset and adds a project-specific rule for the
+# compile-time SSO shared secret (BRIA_SSO_SECRET), which must never be
+# committed as a literal value (only referenced via CI secrets / env vars).
+
+title = "obs-backgroundremoval gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "bria-sso-secret"
+description = "Hardcoded BRIA_SSO_SECRET literal value"
+# Match BRIA_SSO_SECRET assigned/compared to a quoted literal of >= 12 chars.
+# Legitimate references start with $ (e.g. ${{ secrets.* }}, $ENV{...}) or are
+# unquoted identifiers, so they are not matched here.
+regex = '''(?i)BRIA_SSO_SECRET["']?\s*[:=]\s*["'][^"'$<>\s]{12,}["']'''
+keywords = ["bria_sso_secret"]
+
+[rules.allowlist]
+description = "Legitimate references to the secret name (not its value)"
+regexes = [
+    '''secrets\.BRIA_SSO_SECRET''',
+    '''ENV\{BRIA_SSO_SECRET\}''',
+    '''_BRIA_SSO_SECRET_VALUE''',
+]
+
+[[rules]]
+id = "bria-generic-secret"
+description = "Hardcoded BRIA_* credential literal"
+# Future-proofing: catch any BRIA_*KEY/SECRET/TOKEN/PASSWORD assigned to a quoted
+# literal of >= 12 chars. Legitimate references start with $ (${{ secrets.* }},
+# $ENV{...}) and so are excluded by the character class.
+regex = '''(?i)BRIA_[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD)["']?\s*[:=]\s*["'][^"'$<>\s]{12,}["']'''
+keywords = ["bria_"]
+
+[rules.allowlist]
+description = "Legitimate references to BRIA_* secret names (not their values)"
+regexes = [
+    '''secrets\.BRIA_[A-Z0-9_]+''',
+    '''ENV\{BRIA_[A-Z0-9_]+\}''',
+    '''_BRIA_[A-Z0-9_]*_VALUE''',
+]

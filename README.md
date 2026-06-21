@@ -81,4 +81,11 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 ## Reporting Issues
 
-Found a bug or unexpected behavior? Use the **"Report an issue"** link inside the OBS Filters panel (visible when the Bria – Remove Background filter is selected), or [open a GitHub Issue](https://github.com/bria-ai/obs-background-removal/issues) directly.
+See the [CI workflow](.github/workflows/) for macOS and Linux build steps.
+
+## License
+
+Based on [obs-backgroundremoval](https://github.com/royshil/obs-backgroundremoval) by
+Roy Shilkrot. Modifications Copyright (C) 2026 Bria AI. Licensed under
+[GPL-3.0-or-later](LICENSE). See [NOTICE.md](NOTICE.md) for attribution details.
+ß
