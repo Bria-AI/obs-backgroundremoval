@@ -560,10 +560,9 @@ void BriaAuthClient::openSystemBrowser(const std::string &url)
 #endif
 }
 
-static const std::string &briaUserAgent()
+static const char *briaUserAgent()
 {
-	static const std::string ua = "Bria/OBSstudio";
-	return ua;
+	return PLUGIN_USER_AGENT;
 }
 
 std::string BriaAuthClient::httpGet(const std::string &url)
