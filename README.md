@@ -1,7 +1,7 @@
 <!--
 SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
 
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Bria V-RMBG 3.0 - OBS Background Removal Plugin
@@ -18,9 +18,9 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 **Key features:**
 
-- �� **Real-time background removal** - live video processed frame-by-frame via Bria's streaming endpoint
-- �� **Non-binary alpha edges** - soft, natural cutouts instead of hard masks; hair and fine details blend smoothly
-- ��️ **Native OBS filter** - integrates as a standard Effect Filter on any camera source
+- 🎥 **Real-time background removal** - live video processed frame-by-frame via Bria's streaming endpoint
+- ✨ **Non-binary alpha edges** - soft, natural cutouts instead of hard masks; hair and fine details blend smoothly
+- 🎛️ **Native OBS filter** - integrates as a standard Effect Filter on any camera source
 
 ---
 
@@ -81,11 +81,10 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 ## Reporting Issues
 
-See the [CI workflow](.github/workflows/) for macOS and Linux build steps.
+Please open an issue on the [GitHub issue tracker](https://github.com/bria-ai/obs-background-removal/issues). Include your OBS version, OS, and a description of the problem.
 
 ## License
 
 Based on [obs-backgroundremoval](https://github.com/royshil/obs-backgroundremoval) by
 Roy Shilkrot. Modifications Copyright (C) 2026 Bria AI. Licensed under
 [GPL-3.0-or-later](LICENSE). See [NOTICE.md](NOTICE.md) for attribution details.
-ß
