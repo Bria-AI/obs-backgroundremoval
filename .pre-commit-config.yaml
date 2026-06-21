@@ -24,12 +24,16 @@ repos:
     rev: v19.1.7
     hooks:
       - id: clang-format
-        types_or: [c, c++, objc, objc++]
+        types_or: [c, c++]
 
-  - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.17.3
+  - repo: local
     hooks:
       - id: gersemi
+        name: gersemi
+        entry: gersemi
+        language: system
+        files: (CMakeLists\.txt|\.cmake)$
+        args: [--check]
 
   - repo: https://github.com/fsfe/reuse-tool
     rev: v5.0.2

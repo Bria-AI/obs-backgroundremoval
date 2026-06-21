@@ -150,12 +150,9 @@ obs_properties_t *bria_filter_properties(void *data)
 					  return bria_auth_update_ui(p2, prop, nullptr);
 				  });
 	obs_properties_add_button(props, "btn_sign_out", obs_module_text("BriaSignOut"), bria_filter_sign_out_clicked);
-
 	obs_properties_add_button(props, "btn_report_issue", obs_module_text("BriaReportIssue"),
 				  bria_filter_report_issue_clicked);
-
-	obs_properties_add_bool(props, "stop_when_source_is_inactive",
-				obs_module_text("Stop filter when source is inactive"));
+	obs_properties_add_bool(props, "stop_when_source_is_inactive", obs_module_text("BriaStopWhenInactive"));
 
 	// Set initial state (text + visibility) when the dialog first opens
 	bria_auth_update_ui(props, nullptr, nullptr);

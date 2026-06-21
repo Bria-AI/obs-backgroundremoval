@@ -168,6 +168,17 @@ jobs:
 
           cmake --build --preset windows-ci-x64
 
+      - name: Package (Windows x64)
+        shell: pwsh
+        env:
+          PATH: '${{ env.FILTERED_PATH }}'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $PSNativeCommandUseErrorActionPreference = $true
+
+          ./scripts/package_plugin_windows.ps1 -Target x64
+
       - name: Upload Plugin Binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
