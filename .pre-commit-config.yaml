@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# yaml-language-server: $schema=https://json.schemastore.org/pre-commit-config.json
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v19.1.7
+    hooks:
+      - id: clang-format
+        types_or: [c, c++, objc, objc++]
+
+  - repo: https://github.com/BlankSpruce/gersemi
+    rev: 0.17.3
+    hooks:
+      - id: gersemi
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]

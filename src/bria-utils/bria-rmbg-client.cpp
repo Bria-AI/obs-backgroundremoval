@@ -140,7 +140,7 @@ bool BriaRmbgClient::connect(const std::string &apiToken)
 	webSocket_.setMaxWaitBetweenReconnectionRetries(5000);
 
 	ix::WebSocketHttpHeaders headers;
-	headers["User-Agent"] = "Bria/OBSstudio";
+	headers["User-Agent"] = PLUGIN_USER_AGENT;
 	webSocket_.setExtraHeaders(headers);
 
 	sessionStart_ = std::chrono::steady_clock::now();

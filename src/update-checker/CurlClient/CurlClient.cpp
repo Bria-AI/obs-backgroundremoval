@@ -10,7 +10,7 @@
 #include <obs.h>
 #include <plugin-support.h>
 
-const std::string userAgent = std::string(PLUGIN_NAME) + "/" + PLUGIN_VERSION;
+const char *userAgent = PLUGIN_USER_AGENT;
 
 static std::size_t writeFunc(void *ptr, std::size_t size, size_t nmemb, std::string *data)
 {
@@ -29,7 +29,7 @@ void fetchStringFromUrl(const char *urlString, std::function<void(std::string, i
 
 	std::string responseBody;
 	curl_easy_setopt(curl, CURLOPT_URL, urlString);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunc);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBody);
 
