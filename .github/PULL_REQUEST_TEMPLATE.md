@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Bria AI <support@bria.ai>
+SPDX-License-Identifier: Apache-2.0
+-->
+
 ## Description
 
 <!-- Describe your changes in detail -->
