@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-* bria remove background ([6f11fa6](https://github.com/Bria-AI/obs-backgroundremoval/commit/6f11fa6fe43b38f79cbffbb1719baa3d812f42d3))
+* bria remove background ([c91ff89](https://github.com/Bria-AI/obs-backgroundremoval/commit/c91ff892bade1bb348b7c9ac39f268a6935a7373))
 
 
 ### Bug Fixes
