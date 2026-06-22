@@ -8,6 +8,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0](https://github.com/Bria-AI/obs-backgroundremoval/compare/v1.0.0...v0.1.0) (2026-06-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* bria remove background
+
+### Features
+
+* bria remove background ([c91ff89](https://github.com/Bria-AI/obs-backgroundremoval/commit/c91ff892bade1bb348b7c9ac39f268a6935a7373))
+
+
+### Bug Fixes
+
+* **macos:** access api only on linux ([165997c](https://github.com/Bria-AI/obs-backgroundremoval/commit/165997c41a57cf3f3447969e114718b6d2534269))
+
 ## [0.1.0] - 2026-06-22
 
 ### Features
