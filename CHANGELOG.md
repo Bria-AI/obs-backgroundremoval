@@ -19,4 +19,3 @@ All notable changes to this project will be documented in this file.
 - One-time OAuth browser sign-in to authenticate with your Bria account
 - Windows (x64), macOS (arm64 + x86_64), and Linux (x86_64) support
 - Usage telemetry via PostHog to help improve the plugin
-``
