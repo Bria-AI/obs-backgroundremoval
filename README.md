@@ -39,7 +39,7 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 ### Windows
 
-1. Download the `.zip` from the [Releases page](https://github.com/bria-ai/obs-background-removal/releases).
+1. Download the `.zip` from the [Releases page](https://github.com/Bria-AI/obs-backgroundremoval/releases).
 2. Extract the ZIP and locate the `obs-backgroundremoval` folder inside.
 3. Copy it into `C:\ProgramData\obs-studio\plugins\` (create the `plugins` folder if it doesn't exist).
 4. Restart OBS Studio.
@@ -48,7 +48,7 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 ### macOS
 
-1. Download `obs-backgroundremoval-3.0-macos-universal.pkg` from the [Releases page](https://github.com/bria-ai/obs-background-removal/releases).
+1. Download `obs-backgroundremoval-3.0-macos-universal.pkg` from the [Releases page](https://github.com/Bria-AI/obs-backgroundremoval/releases).
 2. Open the `.pkg` file and follow the installer steps.
 3. Restart OBS Studio.
 
@@ -81,7 +81,7 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 ## Reporting Issues
 
-Please open an issue on the [GitHub issue tracker](https://github.com/bria-ai/obs-background-removal/issues). Include your OBS version, OS, and a description of the problem.
+Please open an issue on the [GitHub issue tracker](https://github.com/Bria-AI/obs-backgroundremoval/issues). Include your OBS version, OS, and a description of the problem.
 
 ## License
 
