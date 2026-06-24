@@ -222,7 +222,7 @@ void BriaAuthClient::loadFromConfig()
 			std::lock_guard<std::mutex> lock(stateMutex_);
 			sessionId_ = sessionId;
 		}
-		BriaSentry::setUser(data.userEmail, data.orgId);
+		BriaSentry::setUser(data.orgId);
 		obs_log(LOG_INFO, "Bria SSO: restored session for %s (%s)", data.userEmail.c_str(),
 			data.orgName.c_str());
 		return;
@@ -244,7 +244,7 @@ void BriaAuthClient::loadFromConfig()
 			if (decryptToken(newEncToken, data2)) {
 				setAuthenticated(data2, newEncToken);
 				saveToConfig();
-				BriaSentry::setUser(data2.userEmail, data2.orgId);
+				BriaSentry::setUser(data2.orgId);
 				obs_log(LOG_INFO, "Bria SSO: renewed token for %s", data2.userEmail.c_str());
 				notifyCallbacks();
 				return;
@@ -311,7 +311,7 @@ void BriaAuthClient::runPollLoop(std::string sessionId)
 			if (!newEnc.empty() && decryptToken(newEnc, data)) {
 				setAuthenticated(data, newEnc);
 				saveToConfig();
-				BriaSentry::setUser(data.userEmail, data.orgId);
+				BriaSentry::setUser(data.orgId);
 				notifyCallbacks();
 				obs_log(LOG_INFO, "Bria SSO: signed in as %s (%s)", data.userEmail.c_str(),
 					data.orgName.c_str());

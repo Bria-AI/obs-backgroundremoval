@@ -8,7 +8,7 @@
 
 namespace BriaSentry {
 
-void setUser(const std::string &email, const std::string &orgId);
+void setUser(const std::string &orgId);
 void clearUser();
 
 // #1 — WebSocket non-1000 close

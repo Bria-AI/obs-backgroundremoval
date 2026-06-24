@@ -25,9 +25,7 @@
     },
     "mbedtls",
     {
-      "name": "sentry-native",
-      "default-features": false,
-      "features": ["transport"]
+      "name": "sentry-native"
     }
   ]
 }
