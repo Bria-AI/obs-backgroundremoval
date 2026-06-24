@@ -23,6 +23,11 @@
       "default-features": false,
       "features": ["ssl"]
     },
-    "mbedtls"
+    "mbedtls",
+    {
+      "name": "sentry-native",
+      "default-features": false,
+      "features": ["transport"]
+    }
   ]
 }

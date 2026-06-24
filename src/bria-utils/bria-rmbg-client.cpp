@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: CC0-1.0
 
 #include "bria-rmbg-client.hpp"
+#include "bria-sentry.hpp"
 
 #include <obs-module.h>
 #include <plugin-support.h>
@@ -146,6 +147,7 @@ bool BriaRmbgClient::connect(const std::string &apiToken)
 	sessionStart_ = std::chrono::steady_clock::now();
 	nextFrameId_.store(0);
 	inFlightCount_.store(0);
+	reconnectCount_.store(0);
 	maxInFlight_.store(bria::AIMD_INITIAL_MAX_INFLIGHT);
 	aimdWarmupFrames_ = 0;
 	minRttMs_ = 0.0;
@@ -272,6 +274,8 @@ void BriaRmbgClient::handleMessage(const ix::WebSocketMessagePtr &msg)
 		obs_log(LOG_INFO, "Disconnected from Bria streaming RMBG API (code %d: %s)", msg->closeInfo.code,
 			msg->closeInfo.reason.c_str());
 		connected_.store(false);
+		reconnectCount_.fetch_add(1);
+		BriaSentry::captureWsDisconnect(msg->closeInfo.code, msg->closeInfo.reason, reconnectCount_.load());
 		{
 			std::lock_guard<std::mutex> cLock(connectionCallbackMutex_);
 			if (connectionCallback_)
@@ -280,6 +284,7 @@ void BriaRmbgClient::handleMessage(const ix::WebSocketMessagePtr &msg)
 		break;
 	case ix::WebSocketMessageType::Error:
 		obs_log(LOG_ERROR, "Bria streaming RMBG WebSocket error: %s", msg->errorInfo.reason.c_str());
+		BriaSentry::captureWsError(msg->errorInfo.reason);
 		break;
 	case ix::WebSocketMessageType::Message:
 		if (msg->binary) {

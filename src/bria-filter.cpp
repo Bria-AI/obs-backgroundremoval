@@ -24,6 +24,7 @@
 #include "bria-utils/bria-rmbg-client.hpp"
 #include "FilterData.hpp"
 #include "bria-analytics.hpp"
+#include "bria-utils/bria-sentry.hpp"
 
 #include <QDesktopServices>
 #include <QUrl>
@@ -54,6 +55,12 @@ struct bria_removal_filter : public filter_data, public std::enable_shared_from_
 	std::unordered_map<uint64_t, cv::Mat> frameBuffer;
 	std::mutex frameBufferMutex;
 	static constexpr size_t MAX_BUFFERED_FRAMES = 32;
+
+	// used for FPS tracking
+	uint64_t fpsWindowStartNs{0};
+	uint64_t fpsWindowSubmitted{0};
+	uint64_t fpsWindowDropped{0};
+	static constexpr uint64_t FPS_REPORT_INTERVAL_NS = 60ULL * 1000000000ULL;
 
 	// CPU-composited BGRA output (background zeroed out).  Updated by the
 	// mask callback; read by video_render under outputLock.
@@ -326,6 +333,8 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	char *effect_path = obs_module_file(BRIA_EFFECT_PATH);
 	gs_effect_destroy(tf->effect);
 	tf->effect = gs_effect_create_from_file(effect_path, NULL);
+	if (!tf->effect)
+		BriaSentry::captureShaderLoadFailed(effect_path ? effect_path : BRIA_EFFECT_PATH);
 	bfree(effect_path);
 	obs_leave_graphics();
 
@@ -395,6 +404,7 @@ void *bria_filter_create(obs_data_t *settings, obs_source_t *source)
 		return ptr;
 	} catch (const std::exception &e) {
 		obs_log(LOG_ERROR, "Failed to create Bria removal filter: %s", e.what());
+		BriaSentry::captureException("filter_create", e.what());
 		return nullptr;
 	}
 }
@@ -475,9 +485,30 @@ void bria_filter_video_tick(void *data, float seconds)
 			tf->frameBuffer[frameId] = std::move(imageBGRA);
 			while (tf->frameBuffer.size() > bria_removal_filter::MAX_BUFFERED_FRAMES)
 				tf->frameBuffer.erase(tf->frameBuffer.begin());
+			tf->fpsWindowSubmitted++;
+		} else {
+			tf->fpsWindowDropped++;
 		}
 	} catch (const std::exception &e) {
 		obs_log(LOG_ERROR, "%s", e.what());
+		BriaSentry::captureException("video_tick", e.what());
+	}
+
+	// FPS report every 60 s
+	const uint64_t nowNs = os_gettime_ns();
+	if (tf->fpsWindowStartNs == 0)
+		tf->fpsWindowStartNs = nowNs;
+	if (nowNs - tf->fpsWindowStartNs >= bria_removal_filter::FPS_REPORT_INTERVAL_NS) {
+		const double windowSecs = static_cast<double>(nowNs - tf->fpsWindowStartNs) / 1e9;
+		const double submittedFps = static_cast<double>(tf->fpsWindowSubmitted) / windowSecs;
+		struct obs_video_info ovi = {};
+		double configuredFps = 30.0;
+		if (obs_get_video_info(&ovi))
+			configuredFps = static_cast<double>(ovi.fps_num) / static_cast<double>(ovi.fps_den);
+		BriaSentry::captureFpsReport(configuredFps, submittedFps, tf->fpsWindowSubmitted, tf->fpsWindowDropped);
+		tf->fpsWindowStartNs = nowNs;
+		tf->fpsWindowSubmitted = 0;
+		tf->fpsWindowDropped = 0;
 	}
 }
 

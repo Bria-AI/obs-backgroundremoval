@@ -172,6 +172,9 @@ find_package(MbedTLS CONFIG REQUIRED)
 ## ixwebsocket (Bria streaming RMBG)
 find_package(ixwebsocket CONFIG REQUIRED)
 
+## sentry-native
+find_package(sentry CONFIG REQUIRED)
+
 # Inject the SSO shared secret from the environment (supplied via GitHub secret at CI configure time).
 # Developers must export BRIA_SSO_SECRET before running cmake locally.
 if(DEFINED ENV{BRIA_SSO_SECRET} AND NOT "$ENV{BRIA_SSO_SECRET}" STREQUAL "")
@@ -200,6 +203,20 @@ else()
   )
 endif()
 
+# Inject the Sentry DSN from the environment (supplied via GitHub secret at CI configure time).
+# Developers must export BRIA_SENTRY_DSN before running cmake locally.
+if(DEFINED ENV{BRIA_SENTRY_DSN} AND NOT "$ENV{BRIA_SENTRY_DSN}" STREQUAL "")
+  set(_BRIA_SENTRY_DSN_VALUE "$ENV{BRIA_SENTRY_DSN}")
+else()
+  message(
+    FATAL_ERROR
+    "Environment variable BRIA_SENTRY_DSN is not set.\n"
+    "Export it before running cmake:\n"
+    "  export BRIA_SENTRY_DSN=<value>   # Linux/macOS\n"
+    "  $env:BRIA_SENTRY_DSN='<value>'   # PowerShell"
+  )
+endif()
+
 # Plugin build definitions
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
@@ -216,6 +233,7 @@ target_link_libraries(
     JPEG::JPEG
     ixwebsocket::ixwebsocket
     MbedTLS::mbedcrypto
+    sentry::sentry
 )
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTOMOC ON)
@@ -225,6 +243,7 @@ target_compile_definitions(
   PRIVATE
     "BRIA_SSO_SECRET=\"${_BRIA_SSO_SECRET_VALUE}\""
     "BRIA_POSTHOG_API_KEY=\"${_BRIA_POSTHOG_API_KEY_VALUE}\""
+    "BRIA_SENTRY_DSN=\"${_BRIA_SENTRY_DSN_VALUE}\""
     "PLUGIN_VERSION_STR=\"${PLUGIN_VERSION}\""
 )
 
@@ -241,6 +260,7 @@ target_sources(
     src/bria-utils/bria-frame-protocol.cpp
     src/bria-utils/bria-rmbg-client.cpp
     src/bria-utils/bria-auth-client.cpp
+    src/bria-utils/bria-sentry.cpp
     src/bria-filter.cpp
     src/bria-filter-info.c
 )
