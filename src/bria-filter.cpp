@@ -503,7 +503,7 @@ void bria_filter_video_tick(void *data, float seconds)
 		const double submittedFps = static_cast<double>(tf->fpsWindowSubmitted) / windowSecs;
 		struct obs_video_info ovi = {};
 		double configuredFps = 30.0;
-		if (obs_get_video_info(&ovi))
+		if (obs_get_video_info(&ovi) && ovi.fps_den != 0)
 			configuredFps = static_cast<double>(ovi.fps_num) / static_cast<double>(ovi.fps_den);
 		BriaSentry::captureFpsReport(configuredFps, submittedFps, tf->fpsWindowSubmitted, tf->fpsWindowDropped);
 		tf->fpsWindowStartNs = nowNs;

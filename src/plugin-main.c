@@ -10,7 +10,6 @@
 #include <util/platform.h>
 
 #include <sentry.h>
-#include <stdarg.h>
 
 #include "plugin-support.h"
 #include "update-checker/update-checker.h"
@@ -20,16 +19,6 @@ OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
 extern struct obs_source_info bria_filter_info;
-
-static void sentry_obs_logger(sentry_level_t level, const char *message, va_list args, void *userdata)
-{
-	UNUSED_PARAMETER(userdata);
-	UNUSED_PARAMETER(level);
-
-	char buf[2048];
-	vsnprintf(buf, sizeof(buf), message, args);
-	obs_log(LOG_WARNING, "[sentry] %s", buf);
-}
 
 static void on_obs_frontend_loaded(enum obs_frontend_event event, void *private_data)
 {
@@ -64,8 +53,8 @@ bool obs_module_load(void)
 	sentry_options_set_dsn(sentry_opts, BRIA_SENTRY_DSN);
 	sentry_options_set_release(sentry_opts, "bria-obs@" PLUGIN_VERSION_STR);
 	sentry_options_set_environment(sentry_opts, "production");
-	sentry_options_set_debug(sentry_opts, 1);
-	sentry_options_set_logger(sentry_opts, sentry_obs_logger, NULL);
+	sentry_options_set_enable_metrics(sentry_opts, 1);
+	sentry_options_set_backend(sentry_opts, NULL);
 	char *sentry_db = obs_module_config_path("sentry-db");
 	if (sentry_db) {
 		sentry_options_set_database_path(sentry_opts, sentry_db);
