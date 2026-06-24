@@ -32,7 +32,7 @@ void captureShaderLoadFailed(const std::string &path);
 // #7 — Caught std::exception in a path that should never throw
 void captureException(const std::string &location, const std::string &what);
 
-// #8 — Periodic FPS report (every 60 s while filter is active)
+// #8 — Periodic FPS report (every 60 s while filter is active; warning if submitted < 80% of configured)
 void captureFpsReport(double configuredFps, double submittedFps, uint64_t framesSubmitted, uint64_t framesDropped);
 
 } // namespace BriaSentry

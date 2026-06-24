@@ -143,18 +143,26 @@ void captureException(const std::string &location, const std::string &what)
 
 void captureFpsReport(double configuredFps, double submittedFps, uint64_t framesSubmitted, uint64_t framesDropped)
 {
-	auto makeAttrs = []() -> sentry_value_t {
-		sentry_value_t attrs = sentry_value_new_object();
-		sentry_value_set_by_key(
-			attrs, "feature",
-			sentry_value_new_attribute(sentry_value_new_string("rmbg_streaming"), NULL));
-		return attrs;
-	};
+	const bool degraded = configuredFps > 0.0 && submittedFps < configuredFps * 0.8;
+	const sentry_level_t level = degraded ? SENTRY_LEVEL_WARNING : SENTRY_LEVEL_INFO;
 
-	sentry_metrics_gauge("bria.fps.submitted", submittedFps, NULL, makeAttrs());
-	sentry_metrics_gauge("bria.fps.configured", configuredFps, NULL, makeAttrs());
-	sentry_metrics_count("bria.frames.submitted", (int64_t)framesSubmitted, makeAttrs());
-	sentry_metrics_count("bria.frames.dropped", (int64_t)framesDropped, makeAttrs());
+	sentry_value_t event = sentry_value_new_message_event(level, "fps", "FPS report");
+
+	sentry_value_t tags = sentry_value_new_object();
+	sentry_value_set_by_key(tags, "feature", sentry_value_new_string("rmbg_streaming"));
+	sentry_value_set_by_key(tags, "fps_degraded", sentry_value_new_bool(degraded));
+	sentry_value_set_by_key(event, "tags", tags);
+
+	sentry_value_t ctx = sentry_value_new_object();
+	sentry_value_set_by_key(ctx, "submitted_fps", sentry_value_new_double(submittedFps));
+	sentry_value_set_by_key(ctx, "configured_fps", sentry_value_new_double(configuredFps));
+	sentry_value_set_by_key(ctx, "frames_submitted", sentry_value_new_int32((int32_t)framesSubmitted));
+	sentry_value_set_by_key(ctx, "frames_dropped", sentry_value_new_int32((int32_t)framesDropped));
+	sentry_value_t contexts = sentry_value_new_object();
+	sentry_value_set_by_key(contexts, "fps", ctx);
+	sentry_value_set_by_key(event, "contexts", contexts);
+
+	sentry_capture_event(event);
 }
 
 } // namespace BriaSentry
