@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: CC0-1.0
 
 #include "bria-sentry.hpp"
+#include "bria-auth-client.hpp"
 
 #include <sentry.h>
 
@@ -143,26 +144,18 @@ void captureException(const std::string &location, const std::string &what)
 
 void captureFpsReport(double configuredFps, double submittedFps, uint64_t framesSubmitted, uint64_t framesDropped)
 {
-	const bool degraded = configuredFps > 0.0 && submittedFps < configuredFps * 0.8;
-	const sentry_level_t level = degraded ? SENTRY_LEVEL_WARNING : SENTRY_LEVEL_INFO;
+	const std::string orgId = BriaAuthClient::instance().getOrgId();
 
-	sentry_value_t event = sentry_value_new_message_event(level, "fps", "FPS report");
+	auto make_tags = [&]() {
+		sentry_value_t t = sentry_value_new_object();
+		sentry_value_set_by_key(t, "feature", sentry_value_new_string("obs_srmbg_plugin"));
+		sentry_value_set_by_key(t, "org_id", sentry_value_new_string(orgId.c_str()));
+		return t;
+	};
 
-	sentry_value_t tags = sentry_value_new_object();
-	sentry_value_set_by_key(tags, "feature", sentry_value_new_string("rmbg_streaming"));
-	sentry_value_set_by_key(tags, "fps_degraded", sentry_value_new_bool(degraded));
-	sentry_value_set_by_key(event, "tags", tags);
-
-	sentry_value_t ctx = sentry_value_new_object();
-	sentry_value_set_by_key(ctx, "submitted_fps", sentry_value_new_double(submittedFps));
-	sentry_value_set_by_key(ctx, "configured_fps", sentry_value_new_double(configuredFps));
-	sentry_value_set_by_key(ctx, "frames_submitted", sentry_value_new_int32((int32_t)framesSubmitted));
-	sentry_value_set_by_key(ctx, "frames_dropped", sentry_value_new_int32((int32_t)framesDropped));
-	sentry_value_t contexts = sentry_value_new_object();
-	sentry_value_set_by_key(contexts, "fps", ctx);
-	sentry_value_set_by_key(event, "contexts", contexts);
-
-	sentry_capture_event(event);
+	sentry_metrics_gauge("submitted_fps", submittedFps, "fps", make_tags());
+	sentry_metrics_gauge("frames_submitted", (double)framesSubmitted, "frame", make_tags());
+	sentry_metrics_gauge("frames_dropped", (double)framesDropped, "frame", make_tags());
 }
 
 } // namespace BriaSentry
