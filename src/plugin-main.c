@@ -7,6 +7,9 @@
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 #include <util/config-file.h>
+#include <util/platform.h>
+
+#include <sentry.h>
 
 #include "plugin-support.h"
 #include "update-checker/update-checker.h"
@@ -40,6 +43,29 @@ static void on_obs_frontend_loaded(enum obs_frontend_event event, void *private_
 
 bool obs_module_load(void)
 {
+	char *config_dir = obs_module_config_path(NULL);
+	if (config_dir) {
+		os_mkdirs(config_dir);
+		bfree(config_dir);
+	}
+
+	sentry_options_t *sentry_opts = sentry_options_new();
+	sentry_options_set_dsn(sentry_opts, BRIA_SENTRY_DSN);
+	sentry_options_set_release(sentry_opts, "bria-obs@" PLUGIN_VERSION_STR);
+	sentry_options_set_environment(sentry_opts, "production");
+	sentry_options_set_enable_metrics(sentry_opts, 1);
+	sentry_options_set_traces_sample_rate(sentry_opts, 0.0);
+	sentry_options_set_backend(sentry_opts, NULL);
+	char *sentry_db = obs_module_config_path("sentry-db");
+	if (sentry_db) {
+		sentry_options_set_database_path(sentry_opts, sentry_db);
+		bfree(sentry_db);
+	}
+	if (sentry_init(sentry_opts) != 0)
+		obs_log(LOG_ERROR, "Sentry init failed");
+	else
+		obs_log(LOG_INFO, "Sentry initialized");
+
 	obs_register_source(&bria_filter_info);
 	obs_log(LOG_INFO, "Plugin loaded successfully (version %s)", PLUGIN_VERSION);
 
@@ -54,4 +80,5 @@ void obs_module_unload()
 {
 	obs_frontend_remove_event_callback(on_obs_frontend_loaded, NULL);
 	obs_log(LOG_INFO, "plugin unloaded");
+	sentry_close();
 }

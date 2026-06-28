@@ -62,6 +62,7 @@ private:
 	std::atomic<uint64_t> nextFrameId_{0};
 	std::atomic<int> inFlightCount_{0};
 	std::atomic<int> maxInFlight_{bria::AIMD_INITIAL_MAX_INFLIGHT};
+	std::atomic<int> reconnectCount_{0};
 
 	std::mutex pendingMutex_;
 	std::unordered_map<uint64_t, PendingFrame> pendingFrames_;

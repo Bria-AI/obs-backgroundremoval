@@ -27,6 +27,8 @@ on:
         required: true
       BRIA_POSTHOG_API_KEY:
         required: true
+      BRIA_SENTRY_DSN:
+        required: true
 
 permissions: { }
 
@@ -80,6 +82,9 @@ jobs:
         shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
         run: |
           APT_PACKAGES=(
+            autoconf
+            automake
+            libtool
             libgles2-mesa-dev
             libqt6svg6-dev
             libsimde-dev
@@ -107,9 +112,10 @@ jobs:
         env:
           BASH_ENV: '${{ env.CLEAN_BASH_ENV }}'
           PATH: '${{ env.FILTERED_PATH }}'
-          KEEP_ENV_VARS: 'BRIA_SSO_SECRET;BRIA_POSTHOG_API_KEY'
+          KEEP_ENV_VARS: 'BRIA_SSO_SECRET;BRIA_POSTHOG_API_KEY;BRIA_SENTRY_DSN'
           BRIA_SSO_SECRET: '${{ secrets.BRIA_SSO_SECRET }}'
           BRIA_POSTHOG_API_KEY: '${{ secrets.BRIA_POSTHOG_API_KEY }}'
+          BRIA_SENTRY_DSN: '${{ secrets.BRIA_SENTRY_DSN }}'
         run: |
           cmake --preset ubuntu-ci-x86_64
 
