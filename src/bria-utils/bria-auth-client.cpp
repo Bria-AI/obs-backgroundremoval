@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: CC0-1.0
 
 #include "bria-auth-client.hpp"
+#include "bria-sentry.hpp"
 
 #include <obs-module.h>
 #include <plugin-support.h>
@@ -221,6 +222,7 @@ void BriaAuthClient::loadFromConfig()
 			std::lock_guard<std::mutex> lock(stateMutex_);
 			sessionId_ = sessionId;
 		}
+		BriaSentry::setUser(data.orgId);
 		obs_log(LOG_INFO, "Bria SSO: restored session for %s (%s)", data.userEmail.c_str(),
 			data.orgName.c_str());
 		return;
@@ -242,6 +244,7 @@ void BriaAuthClient::loadFromConfig()
 			if (decryptToken(newEncToken, data2)) {
 				setAuthenticated(data2, newEncToken);
 				saveToConfig();
+				BriaSentry::setUser(data2.orgId);
 				obs_log(LOG_INFO, "Bria SSO: renewed token for %s", data2.userEmail.c_str());
 				notifyCallbacks();
 				return;
@@ -293,6 +296,7 @@ void BriaAuthClient::runPollLoop(std::string sessionId)
 					} else {
 						obs_log(LOG_WARNING,
 							"Bria SSO: token renewal failed, please sign in again");
+						BriaSentry::captureAuthRenewalFailed();
 						clearAuth();
 						saveToConfig();
 						notifyCallbacks();
@@ -307,6 +311,7 @@ void BriaAuthClient::runPollLoop(std::string sessionId)
 			if (!newEnc.empty() && decryptToken(newEnc, data)) {
 				setAuthenticated(data, newEnc);
 				saveToConfig();
+				BriaSentry::setUser(data.orgId);
 				notifyCallbacks();
 				obs_log(LOG_INFO, "Bria SSO: signed in as %s (%s)", data.userEmail.c_str(),
 					data.orgName.c_str());
@@ -330,6 +335,7 @@ void BriaAuthClient::runPollLoop(std::string sessionId)
 			}
 		} else if (!error.empty() && error != "Plugin Auth ID not found") {
 			obs_log(LOG_ERROR, "Bria SSO: poll error: %s", error.c_str());
+			BriaSentry::captureAuthPollError(error);
 			checkingAuth_.store(false);
 			notifyCallbacks();
 			return;
@@ -421,6 +427,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 	if (b64Ret != 0) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: base64 decode failed (ret=%d, token_len=%zu)", b64Ret,
 			normalised.size());
+		BriaSentry::captureAuthDecryptFailed("base64");
 		return false;
 	}
 	decoded.resize(decodedLen);
@@ -429,6 +436,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 
 	if (decoded.size() <= 16) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: decoded blob too short (%zu bytes)", decoded.size());
+		BriaSentry::captureAuthDecryptFailed("ciphertext_length");
 		return false;
 	}
 
@@ -442,6 +450,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 	if (ciphertextLen == 0 || ciphertextLen % 16 != 0) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: invalid ciphertext length %zu (not a multiple of 16)",
 			ciphertextLen);
+		BriaSentry::captureAuthDecryptFailed("ciphertext_length");
 		return false;
 	}
 
@@ -458,6 +467,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 	if (mbedtls_aes_setkey_dec(&aes, key, 256) != 0) {
 		mbedtls_aes_free(&aes);
 		obs_log(LOG_ERROR, "Bria SSO decrypt: AES setkey failed");
+		BriaSentry::captureAuthDecryptFailed("aes_key");
 		return false;
 	}
 
@@ -468,6 +478,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 
 	if (aesRet != 0) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: AES-CBC decrypt failed (ret=%d)", aesRet);
+		BriaSentry::captureAuthDecryptFailed("aes_decrypt");
 		return false;
 	}
 
@@ -480,6 +491,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 	if (padLen == 0 || padLen > 16 || padLen > plaintext.size()) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: bad PKCS7 pad byte %u (plaintext_len=%zu)", (unsigned)padLen,
 			plaintext.size());
+		BriaSentry::captureAuthDecryptFailed("pkcs7");
 		return false;
 	}
 	plaintext.resize(plaintext.size() - padLen);
@@ -496,6 +508,7 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 
 	if (out.apiToken.empty()) {
 		obs_log(LOG_ERROR, "Bria SSO decrypt: api_token missing from decrypted JSON");
+		BriaSentry::captureAuthDecryptFailed("json_parse");
 		return false;
 	}
 
@@ -522,11 +535,14 @@ void BriaAuthClient::setCheckingAuth(bool checking)
 
 void BriaAuthClient::clearAuth()
 {
-	std::lock_guard<std::mutex> lock(stateMutex_);
-	authData_ = {};
-	encryptedToken_.clear();
-	authenticated_.store(false);
-	checkingAuth_.store(false);
+	{
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		authData_ = {};
+		encryptedToken_.clear();
+		authenticated_.store(false);
+		checkingAuth_.store(false);
+	}
+	BriaSentry::clearUser();
 }
 
 void BriaAuthClient::notifyCallbacks()
