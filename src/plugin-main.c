@@ -54,6 +54,7 @@ bool obs_module_load(void)
 	sentry_options_set_release(sentry_opts, "bria-obs@" PLUGIN_VERSION_STR);
 	sentry_options_set_environment(sentry_opts, "production");
 	sentry_options_set_enable_metrics(sentry_opts, 1);
+	sentry_options_set_traces_sample_rate(sentry_opts, 0.0);
 	sentry_options_set_backend(sentry_opts, NULL);
 	char *sentry_db = obs_module_config_path("sentry-db");
 	if (sentry_db) {
