@@ -8,6 +8,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1](https://github.com/Bria-AI/obs-backgroundremoval/compare/v0.1.0...v0.1.1) (2026-06-29)
+
+
+### Features
+
+* Add sentry coverage ([#12](https://github.com/Bria-AI/obs-backgroundremoval/issues/12)) ([42d1681](https://github.com/Bria-AI/obs-backgroundremoval/commit/42d16815528d62a97b419fd344e9348feaa77e05))
+
+
+### Bug Fixes
+
+* Fix builds ([#15](https://github.com/Bria-AI/obs-backgroundremoval/issues/15)) ([dd0765a](https://github.com/Bria-AI/obs-backgroundremoval/commit/dd0765a8143be948f7903c1c0de2fd262703e011))
+
 ## [0.1.0](https://github.com/Bria-AI/obs-backgroundremoval/compare/v1.0.0...v0.1.0) (2026-06-22)
 
 
