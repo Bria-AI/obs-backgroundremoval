@@ -9,6 +9,10 @@
 #include <util/config-file.h>
 #include <util/platform.h>
 
+#ifdef __linux__
+#include <signal.h>
+#include <ucontext.h>
+#endif
 #include <sentry.h>
 
 #include "plugin-support.h"
