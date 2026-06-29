@@ -38,7 +38,7 @@
   },
   "name": "bria-obs-backgroundremoval",
   "displayName": "Bria Background Removal for OBS",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "Bria AI",
   "website": "https://bria.ai",
   "email": "support@bria.ai"
