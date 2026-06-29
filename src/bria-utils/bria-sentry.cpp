@@ -142,7 +142,7 @@ void captureException(const std::string &location, const std::string &what)
 	sentry_capture_event(event);
 }
 
-void captureFpsReport(double configuredFps, double submittedFps, uint64_t framesSubmitted, uint64_t framesDropped)
+void captureFpsReport(double submittedFps, uint64_t framesSubmitted, uint64_t framesDropped)
 {
 	const std::string orgId = BriaAuthClient::instance().getOrgId();
 

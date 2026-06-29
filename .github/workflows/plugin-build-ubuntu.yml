@@ -83,6 +83,7 @@ jobs:
         run: |
           APT_PACKAGES=(
             autoconf
+            autoconf-archive
             automake
             libtool
             libgles2-mesa-dev
