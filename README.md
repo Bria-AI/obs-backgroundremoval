@@ -29,7 +29,6 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 | Requirement         | Details                                                                         |
 | ------------------- | ------------------------------------------------------------------------------- |
 | OBS Studio          | 31.0 or later - [download here](https://obsproject.com/download)                |
-| Bria account        | Required for authentication - [create one here](https://platform.bria.ai/login) |
 | Operating system    | Windows 10/11 (x64) · macOS 12+ (arm64 and x86_64)                              |
 | Internet connection | Required - frames are processed in Bria's cloud in real time                    |
 
@@ -75,7 +74,8 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 3. Return to OBS. The status updates to **"Signed in as [your email]."**
 4. Your camera now appears with the background removed. ✅
 
-> Don't have a Bria account yet? [Create one here](https://platform.bria.ai/login) - it only takes a minute.
+> **Please make sure you are creating a Bria account directly from the plugin - this way you ensure you have a period of free trial.**
+
 
 ---
 
