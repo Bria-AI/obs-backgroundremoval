@@ -10,11 +10,13 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include <atomic>
 #include <cmath>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <util/platform.h>
 #include <plugin-support.h>
@@ -25,8 +27,11 @@
 #include "FilterData.hpp"
 #include "bria-analytics.hpp"
 #include "bria-utils/bria-sentry.hpp"
+#include "bria-error-dialog.h"
 
+#include <QCoreApplication>
 #include <QDesktopServices>
+#include <QMetaObject>
 #include <QUrl>
 
 // ---------------------------------------------------------------------------
@@ -34,6 +39,11 @@
 // ---------------------------------------------------------------------------
 
 static constexpr int BRIA_JPEG_QUALITY = 60;
+
+// Once an error popup has been shown for an ongoing error condition, wait
+// this long before showing it again (so a stuck reconnect loop reminds the
+// user periodically instead of either spamming or going silent).
+static constexpr uint64_t BRIA_ERROR_POPUP_REPEAT_MS = 30000;
 
 // ---------------------------------------------------------------------------
 // Filter data struct
@@ -48,6 +58,23 @@ struct bria_removal_filter : public filter_data, public std::enable_shared_from_
 	std::string lastConnectedToken;
 	BriaAuthClient::CallbackHandle authCallbackHandle{0};
 	bool authCallbackRegistered{false};
+
+	// Last known WebSocket close code (0 = none/connected). Drives the overlay
+	// text, the Filter properties error status, and which error popup to show.
+	std::atomic<int> lastCloseCode{0};
+	// os_gettime_ns()/1e6 timestamp of the last time an error popup was shown,
+	// across ALL error types; 0 means none shown yet. Enforces a single
+	// global cooldown so switching between error codes can't chain popups.
+	std::atomic<uint64_t> lastErrorPopupMs{0};
+	// True while a popup is queued/being displayed on the Qt thread — ensures
+	// only one is ever in flight at a time.
+	std::atomic<bool> errorPopupInFlight{false};
+	// Set once in bria_filter_destroy(). A popup can already be queued on the
+	// Qt thread (via QMetaObject::invokeMethod) when the filter is removed —
+	// the queued lambda keeps this object alive via its captured shared_ptr,
+	// so it still runs later; this flag lets it detect that and skip showing
+	// the dialog for a filter that no longer exists.
+	std::atomic<bool> destroyed{false};
 
 	// Frame buffer: frameId → BGRA pixels captured at submission time.
 	// The mask callback looks up the matching frame so compositing is always
@@ -198,27 +225,88 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		tf->briaClient = std::make_unique<BriaRmbgClient>();
 	}
 
-	// When the WebSocket drops (e.g. 1013 capacity-exceeded) clear the
-	// composited output and the frame buffer so the "Connecting…" overlay
-	// reappears immediately.  On reconnect the overlay disappears as soon as
-	// the first mask arrives — no extra action needed.
-	tf->briaClient->setConnectionCallback([tf](bool connected) {
-		if (!connected) {
-			{
-				std::lock_guard<std::mutex> outLock(tf->outputLock);
-				tf->compositedBGRA.release();
-			}
-			{
-				std::lock_guard<std::mutex> bufLock(tf->frameBufferMutex);
-				tf->frameBuffer.clear();
-			}
-			obs_log(LOG_INFO, "Bria removal filter: connection lost — showing Connecting overlay");
-		} else {
-			obs_log(LOG_INFO, "Bria removal filter: reconnected — resuming background removal");
+	// When the WebSocket drops clear the composited output and the frame
+	// buffer so the "Connecting…"/error overlay reappears immediately.  For
+	// known close codes (1008/1011/4003/1013/4008) also record the reason so
+	// the overlay can show it, and surface a popup — at most one at a time,
+	// and at most once every BRIA_ERROR_POPUP_REPEAT_MS overall (not per
+	// error code), so a stuck reconnect loop — even one that flaps between
+	// different error codes — can't stack popups, while still periodically
+	// reminding the user it's unresolved. When the server sends a detailed
+	// error message (e.g. a specific quota-exceeded explanation) it's shown
+	// verbatim instead of our generic per-code text. The error state is only
+	// cleared once a mask actually arrives (see setMaskCallback below) — a
+	// bare reconnect (Open) doesn't prove the underlying issue is resolved,
+	// since e.g. an unauthorized session can accept the handshake and then
+	// immediately close again on every auto-reconnect attempt.
+	tf->briaClient->setConnectionCallback([tf](bool connected, int closeCode, const std::string &closeReason,
+						    const std::string &serverMessage) {
+		if (connected) {
+			obs_log(LOG_INFO, "Bria removal filter: reconnected — waiting for first mask");
+			return;
+		}
+
+		{
+			std::lock_guard<std::mutex> outLock(tf->outputLock);
+			tf->compositedBGRA.release();
+		}
+		{
+			std::lock_guard<std::mutex> bufLock(tf->frameBufferMutex);
+			tf->frameBuffer.clear();
+		}
+
+		const BriaCloseReason reason = classifyCloseCode(closeCode);
+		if (reason == BriaCloseReason::Unknown) {
+			tf->lastCloseCode.store(0);
+			tf->lastErrorPopupMs.store(0);
+			obs_log(LOG_INFO, "Bria removal filter: connection lost (code %d) — showing Connecting overlay",
+				closeCode);
+			return;
+		}
+
+		obs_log(LOG_INFO, "Bria removal filter: connection lost (code %d: %s) — showing error overlay",
+			closeCode, closeReason.c_str());
+
+		tf->lastCloseCode.store(closeCode);
+
+		// Prefer a detailed message from a preceding JSON error frame; the
+		// WebSocket close frame's own reason text is often the actual
+		// server-provided explanation too (e.g. a specific quota-exceeded
+		// message), so fall back to that before finally falling back to our
+		// generic per-reason text (handled inside bria_show_error_dialog).
+		const std::string detail = !serverMessage.empty() ? serverMessage : closeReason;
+
+		// One popup at a time, at least BRIA_ERROR_POPUP_REPEAT_MS apart —
+		// regardless of whether the error code just changed, so flapping
+		// between e.g. capacity-exceeded and unauthorized can't chain popups.
+		const uint64_t nowMs = os_gettime_ns() / 1000000ULL;
+		const uint64_t lastShownMs = tf->lastErrorPopupMs.load();
+		const bool cooldownElapsed = lastShownMs == 0 || nowMs - lastShownMs >= BRIA_ERROR_POPUP_REPEAT_MS;
+		if (cooldownElapsed && !tf->errorPopupInFlight.exchange(true)) {
+			tf->lastErrorPopupMs.store(nowMs);
+			QMetaObject::invokeMethod(
+				qApp,
+				[tf, reason, detail]() {
+					// The filter may have been removed from the source
+					// while this was queued — tf's shared_ptr keeps the
+					// object alive, but there's nothing left for the
+					// user to act on, so skip showing it.
+					if (!tf->destroyed.load()) {
+						bria_show_error_dialog(reason, detail);
+					}
+					tf->errorPopupInFlight.store(false);
+				},
+				Qt::QueuedConnection);
 		}
 	});
 
 	tf->briaClient->setMaskCallback([tf](cv::Mat foregroundMask, uint64_t frameId) {
+		// A mask actually arriving proves the connection is genuinely healthy
+		// again — this is the only place that clears the error state (see the
+		// connection callback above for why Open alone isn't enough).
+		tf->lastCloseCode.store(0);
+		tf->lastErrorPopupMs.store(0);
+
 		// Retrieve the source frame that was submitted with this frameId.
 		cv::Mat matchedBGRA;
 		{
@@ -417,6 +505,7 @@ void bria_filter_destroy(void *data)
 	if (ptr) {
 		if (*ptr) {
 			(*ptr)->isDisabled = true;
+			(*ptr)->destroyed.store(true);
 
 			if ((*ptr)->authCallbackRegistered) {
 				BriaAuthClient::instance().removeCallback((*ptr)->authCallbackHandle);
@@ -512,10 +601,20 @@ void bria_filter_video_tick(void *data, float seconds)
 // "Connecting…" overlay helper
 // ---------------------------------------------------------------------------
 
-// Blends the "Connecting…" banner onto the live camera frame so users get
-// clear feedback while the plugin is waiting for the first mask from the API.
-// The number of trailing dots pulses over time so the indicator feels alive.
-static cv::Mat makeConnectingFrame(const cv::Mat &bgra)
+// Blends a status banner onto the live camera frame so users get clear
+// feedback while the plugin is waiting for the first mask from the API, or
+// when the last WebSocket close code indicates a known error condition.
+//
+// Rules:
+//  - No error (or an unrecognized close code): just the animated
+//    "Connecting…" line, as before.
+//  - Unauthorized / GeneralError: these won't recover on their own (need
+//    sign-in, or are a server-side fault), so only the error line is shown —
+//    no "Connecting…" underneath it.
+//  - SessionLimitReached / CapacityExceeded / SessionTimeout: these are all
+//    still retried automatically, so both lines are shown together —
+//    "Connecting…" plus the specific reason.
+static cv::Mat makeConnectingFrame(const cv::Mat &bgra, int closeCode)
 {
 	cv::Mat frame = bgra.clone();
 	if (frame.empty())
@@ -527,30 +626,78 @@ static cv::Mat makeConnectingFrame(const cv::Mat &bgra)
 	// Animate the trailing dots: "Connecting." → ".." → "..." every 600 ms
 	const uint64_t nowMs = os_gettime_ns() / 1000000ULL;
 	const int dots = static_cast<int>((nowMs / 600ULL) % 3) + 1;
-	const std::string text = "Connecting" + std::string(dots, '.');
+	const std::string connectingText = "Connecting" + std::string(dots, '.');
+
+	bool showConnecting = true;
+	std::string errorText;
+	switch (classifyCloseCode(closeCode)) {
+	case BriaCloseReason::Unauthorized:
+		showConnecting = false;
+		errorText = "";
+		break;
+	case BriaCloseReason::GeneralError:
+		showConnecting = false;
+		errorText = "Something Went Wrong";
+		break;
+	case BriaCloseReason::SessionLimitReached:
+		errorText = "Plan Limit Reached";
+		break;
+	case BriaCloseReason::CapacityExceeded:
+		errorText = "Service Busy";
+		break;
+	case BriaCloseReason::SessionTimeout:
+		errorText = "Session Timed Out";
+		break;
+	case BriaCloseReason::Unknown:
+	default:
+		break;
+	}
+
+	std::vector<std::string> lines;
+	if (showConnecting)
+		lines.push_back(connectingText);
+	if (!errorText.empty())
+		lines.push_back(errorText);
 
 	const int font = cv::FONT_HERSHEY_SIMPLEX;
 	const double fontScale = std::max(0.9, w / 1280.0 * 1.4);
 	const int thickness = std::max(2, static_cast<int>(fontScale * 1.5));
-	int baseline = 0;
-	const cv::Size textSz = cv::getTextSize(text, font, fontScale, thickness, &baseline);
 
-	// Semi-transparent dark banner centred vertically
-	const int bannerH = textSz.height * 3;
+	int maxTextWidth = 0;
+	int lineHeight = 0;
+	int baseline = 0;
+	for (const std::string &line : lines) {
+		const cv::Size textSz = cv::getTextSize(line, font, fontScale, thickness, &baseline);
+		maxTextWidth = std::max(maxTextWidth, textSz.width);
+		lineHeight = std::max(lineHeight, textSz.height + baseline);
+	}
+	const int lineSpacing = lineHeight / 2;
+	const int textBlockHeight =
+		static_cast<int>(lines.size()) * lineHeight + (static_cast<int>(lines.size()) - 1) * lineSpacing;
+
+	// Semi-transparent dark banner centred vertically, sized to fit all lines
+	const int bannerH = textBlockHeight + lineHeight * 2;
 	const int bannerY = (h - bannerH) / 2;
 	const cv::Rect bannerRect(0, bannerY, w, bannerH);
 	cv::Mat roi = frame(bannerRect);
 	cv::Mat dark(roi.size(), CV_8UC4, cv::Scalar(0, 0, 0, 255));
 	cv::addWeighted(roi, 0.35, dark, 0.65, 0.0, roi);
 
-	// Centre text within the banner
-	const cv::Point textOrg((w - textSz.width) / 2, bannerY + (bannerH + textSz.height) / 2 - baseline);
+	// Draw each line, stacked and centred within the banner
+	int y = bannerY + (bannerH - textBlockHeight) / 2 + lineHeight - baseline;
+	for (const std::string &line : lines) {
+		const cv::Size textSz = cv::getTextSize(line, font, fontScale, thickness, &baseline);
+		const cv::Point textOrg((w - textSz.width) / 2, y);
 
-	// Drop shadow for readability on any background
-	cv::putText(frame, text, textOrg + cv::Point(2, 2), font, fontScale, cv::Scalar(0, 0, 0, 255), thickness + 2,
-		    cv::LINE_AA);
-	// White text
-	cv::putText(frame, text, textOrg, font, fontScale, cv::Scalar(255, 255, 255, 255), thickness, cv::LINE_AA);
+		// Drop shadow for readability on any background
+		cv::putText(frame, line, textOrg + cv::Point(2, 2), font, fontScale, cv::Scalar(0, 0, 0, 255),
+			    thickness + 2, cv::LINE_AA);
+		// White text
+		cv::putText(frame, line, textOrg, font, fontScale, cv::Scalar(255, 255, 255, 255), thickness,
+			    cv::LINE_AA);
+
+		y += lineHeight + lineSpacing;
+	}
 
 	return frame;
 }
@@ -609,7 +756,7 @@ void bria_filter_video_render(void *data, gs_effect_t *_effect)
 			obs_source_skip_video_filter(tf->source);
 			return;
 		}
-		composited = makeConnectingFrame(upstream);
+		composited = makeConnectingFrame(upstream, tf->lastCloseCode.load());
 	}
 
 	// Upload CPU-composited BGRA to a temporary GPU texture.

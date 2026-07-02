@@ -18,6 +18,51 @@
 
 namespace {
 
+// Minimal JSON string-value extractor for `"key":"value"` (optionally with
+// spaces around the colon). Good enough for the small, flat error frames the
+// streaming API sends — not a general JSON parser.
+std::string extractJsonString(const std::string &json, const std::string &key)
+{
+	const std::string keyPart = "\"" + key + "\"";
+	size_t pos = json.find(keyPart);
+	if (pos == std::string::npos) {
+		return {};
+	}
+	pos += keyPart.size();
+	while (pos < json.size() && (json[pos] == ' ' || json[pos] == '\t')) {
+		++pos;
+	}
+	if (pos >= json.size() || json[pos] != ':') {
+		return {};
+	}
+	++pos;
+	while (pos < json.size() && (json[pos] == ' ' || json[pos] == '\t')) {
+		++pos;
+	}
+	if (pos >= json.size() || json[pos] != '"') {
+		return {};
+	}
+	++pos;
+	std::string result;
+	for (size_t i = pos; i < json.size(); ++i) {
+		if (json[i] == '\\' && i + 1 < json.size()) {
+			++i;
+			if (json[i] == '"') {
+				result += '"';
+			} else if (json[i] == '\\') {
+				result += '\\';
+			} else {
+				result += json[i];
+			}
+		} else if (json[i] == '"') {
+			break;
+		} else {
+			result += json[i];
+		}
+	}
+	return result;
+}
+
 struct JpegErrorMgr {
 	jpeg_error_mgr pub;
 	jmp_buf setjmpBuffer;
@@ -267,21 +312,27 @@ void BriaRmbgClient::handleMessage(const ix::WebSocketMessagePtr &msg)
 		{
 			std::lock_guard<std::mutex> cLock(connectionCallbackMutex_);
 			if (connectionCallback_)
-				connectionCallback_(true);
+				connectionCallback_(true, 0, "", "");
 		}
 		break;
-	case ix::WebSocketMessageType::Close:
+	case ix::WebSocketMessageType::Close: {
 		obs_log(LOG_INFO, "Disconnected from Bria streaming RMBG API (code %d: %s)", msg->closeInfo.code,
 			msg->closeInfo.reason.c_str());
 		connected_.store(false);
 		reconnectCount_.fetch_add(1);
 		BriaSentry::captureWsDisconnect(msg->closeInfo.code, msg->closeInfo.reason, reconnectCount_.load());
+		// The server typically sends a JSON error frame with a detailed
+		// "message" (e.g. a specific quota-exceeded explanation) just before
+		// closing. Consume it here so it travels with this close event only.
+		const std::string serverMessage = std::move(lastErrorMessage_);
+		lastErrorMessage_.clear();
 		{
 			std::lock_guard<std::mutex> cLock(connectionCallbackMutex_);
 			if (connectionCallback_)
-				connectionCallback_(false);
+				connectionCallback_(false, msg->closeInfo.code, msg->closeInfo.reason, serverMessage);
 		}
 		break;
+	}
 	case ix::WebSocketMessageType::Error:
 		obs_log(LOG_ERROR, "Bria streaming RMBG WebSocket error: %s", msg->errorInfo.reason.c_str());
 		BriaSentry::captureWsError(msg->errorInfo.reason);
@@ -344,6 +395,10 @@ void BriaRmbgClient::handleJsonMessage(const std::string &payload)
 	if (payload.find("\"type\":\"error\"") != std::string::npos ||
 	    payload.find("\"type\": \"error\"") != std::string::npos) {
 		obs_log(LOG_ERROR, "Bria streaming RMBG API error: %s", payload.c_str());
+		// Remember the server's detailed message (if any) so it can be
+		// surfaced verbatim when the socket closes shortly after — e.g. a
+		// specific quota-exceeded explanation rather than just "unauthorized".
+		lastErrorMessage_ = extractJsonString(payload, "message");
 	}
 }
 

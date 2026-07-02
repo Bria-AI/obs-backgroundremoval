@@ -252,6 +252,7 @@ target_sources(
   PRIVATE
     src/plugin-main.c
     src/bria-welcome-dialog.cpp
+    src/bria-error-dialog.cpp
     src/bria-analytics.cpp
     src/obs-utils/obs-utils.cpp
     src/obs-utils/obs-config-utils.cpp
