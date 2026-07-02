@@ -58,7 +58,7 @@ public:
 	// server sent before closing (e.g. a detailed quota-exceeded explanation), or
 	// an empty string if the server didn't send one.
 	using ConnectionCallback = std::function<void(bool connected, int closeCode, const std::string &closeReason,
-						       const std::string &serverMessage)>;
+						      const std::string &serverMessage)>;
 
 	BriaRmbgClient();
 	~BriaRmbgClient();

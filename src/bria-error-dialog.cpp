@@ -84,8 +84,8 @@ extern "C" void bria_show_error_dialog(BriaCloseReason reason, const std::string
 	}
 
 	BriaAnalytics::instance().capture("obs_plugin_error_shown",
-					   {{"reason", std::to_string(static_cast<int>(reason))},
-					    {"has_server_message", serverMessage.empty() ? "false" : "true"}});
+					  {{"reason", std::to_string(static_cast<int>(reason))},
+					   {"has_server_message", serverMessage.empty() ? "false" : "true"}});
 
 	dialog.exec();
 }

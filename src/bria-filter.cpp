@@ -240,7 +240,7 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	// since e.g. an unauthorized session can accept the handshake and then
 	// immediately close again on every auto-reconnect attempt.
 	tf->briaClient->setConnectionCallback([tf](bool connected, int closeCode, const std::string &closeReason,
-						    const std::string &serverMessage) {
+						   const std::string &serverMessage) {
 		if (connected) {
 			obs_log(LOG_INFO, "Bria removal filter: reconnected — waiting for first mask");
 			return;
