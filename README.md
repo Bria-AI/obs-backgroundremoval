@@ -6,19 +6,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Bria V-RMBG 3.0 - OBS Background Removal Plugin
 
-> Real-time AI background removal for OBS Studio
+> Streaming AI background removal for OBS Studio
 
 ---
 
 ## Overview
 
-The **Bria V-RMBG 3.0 OBS Plugin** adds a native Effect Filter to OBS Studio that removes your video background in real time using Bria's V-RMBG 3.0 model. Your webcam frames are streamed to Bria's inference endpoint, returned background-removed, and rendered directly into your OBS scene - no green screen, no local GPU processing required.
+The **Bria V-RMBG 3.0 OBS Plugin** adds a native Effect Filter to OBS Studio that removes your video background in streaming using Bria's V-RMBG 3.0 model. Your webcam frames are streamed to Bria's inference endpoint, returned background-removed, and rendered directly into your OBS scene - no green screen, no local GPU processing required.
 
 This plugin is built on Bria's commercially licensed AI models, making it safe for any stream, broadcast, or commercial production.
 
 **Key features:**
 
-- 🎥 **Real-time background removal** - live video processed frame-by-frame via Bria's streaming endpoint
+- 🎥 **Streaming background removal** - video processed frame-by-frame via Bria's streaming endpoint
 - ✨ **Non-binary alpha edges** - soft, natural cutouts instead of hard masks; hair and fine details blend smoothly
 - 🎛️ **Native OBS filter** - integrates as a standard Effect Filter on any camera source
 
