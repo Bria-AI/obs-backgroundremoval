@@ -39,11 +39,12 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 ### Windows
 
 1. Download the `.zip` from the [Releases page](https://github.com/Bria-AI/obs-backgroundremoval/releases).
-2. Extract the ZIP and locate the `obs-backgroundremoval` folder inside.
-3. Copy it into `C:\ProgramData\obs-studio\plugins\` (create the `plugins` folder if it doesn't exist).
-4. Restart OBS Studio.
+2. Extract the ZIP and locate the 2 folders inside: `bin` and `data`.
+3. Copy the DLL file from `bin\64bit` into `obs-studio\bin\64bit` and into `obs-studio\obs-plugins\64bit`.
+4. Copy the contents of the `data` folder (not the folder itself) into `obs-studio\data\obs-plugins\bria-obs-backgroundremoval-windowsOS`.
+5. Restart OBS Studio.
 
-> **Updating from a previous version?** The ZIP includes `remove-old-installation.bat`. Right-click → Run as administrator before copying the new files.
+> **Note:** If the `obs-plugins` or `bria-obs-backgroundremoval-windowsOS` folders don't exist, create them.
 
 ### macOS
 
