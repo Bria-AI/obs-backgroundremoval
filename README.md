@@ -18,7 +18,7 @@ This plugin is built on Bria's commercially licensed AI models, making it safe f
 
 **Key features:**
 
-- 🎥 **Real-time background removal** - live video processed frame-by-frame via Bria's streaming endpoint
+- 🎥 **Streaming background removal** - live video processed frame-by-frame via Bria's streaming endpoint
 - ✨ **Non-binary alpha edges** - soft, natural cutouts instead of hard masks; hair and fine details blend smoothly
 - 🎛️ **Native OBS filter** - integrates as a standard Effect Filter on any camera source
 
