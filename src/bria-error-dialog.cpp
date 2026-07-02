@@ -11,8 +11,24 @@
 #include <QDialog>
 #include <QLabel>
 #include <QMainWindow>
+#include <QRegularExpression>
 #include <QString>
 #include <QVBoxLayout>
+
+namespace {
+
+// Escapes plain text for safe display as rich text, then turns any http(s)
+// URL into a clickable link (trailing punctuation like ":" or "." is kept
+// outside the link so it doesn't get swept into the clickable area/target).
+QString toHtmlWithLinks(const QString &plain)
+{
+	QString html = plain.toHtmlEscaped();
+	static const QRegularExpression urlPattern(QStringLiteral(R"((https?://[^\s<]+?)([.,;:!?)]*)(?=\s|$))"));
+	html.replace(urlPattern, QStringLiteral(R"(<a href="\1">\1</a>\2)"));
+	return html;
+}
+
+} // namespace
 
 extern "C" void bria_show_error_dialog(BriaCloseReason reason, const std::string &serverMessage)
 {
@@ -52,7 +68,9 @@ extern "C" void bria_show_error_dialog(BriaCloseReason reason, const std::string
 	QVBoxLayout *root = new QVBoxLayout(&dialog);
 	root->setContentsMargins(28, 24, 28, 24);
 
-	QLabel *message = new QLabel(QString::fromStdString(text));
+	QLabel *message = new QLabel(toHtmlWithLinks(QString::fromStdString(text)));
+	message->setTextFormat(Qt::RichText);
+	message->setOpenExternalLinks(true);
 	message->setWordWrap(true);
 	root->addWidget(message);
 
