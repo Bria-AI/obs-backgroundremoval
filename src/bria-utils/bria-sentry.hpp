@@ -27,7 +27,9 @@ void captureAuthPollError(const std::string &serverError);
 void captureAuthRenewalFailed();
 
 // #6 — OBS shader effect file failed to load (filter silently broken)
-void captureShaderLoadFailed(const std::string &path);
+void captureShaderLoadFailed(const std::string &path, bool fileExists, const std::string &logMessage,
+			     const std::string &deviceName, const std::string &deviceType,
+			     const std::string &driverVersion);
 
 // #7 — Caught std::exception in a path that should never throw
 void captureException(const std::string &location, const std::string &what);

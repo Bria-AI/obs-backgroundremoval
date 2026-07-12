@@ -103,17 +103,32 @@ void captureAuthRenewalFailed()
 	sentry_capture_event(event);
 }
 
-void captureShaderLoadFailed(const std::string &path)
+void captureShaderLoadFailed(const std::string &path, bool fileExists, const std::string &logMessage,
+			     const std::string &deviceName, const std::string &deviceType,
+			     const std::string &driverVersion)
 {
-	const std::string msg = "Shader failed to load: " + path;
+	const char *failureStage = fileExists ? "compile_error" : "file_missing";
+
+	std::string msg = "Shader failed to load: " + path;
+	if (!logMessage.empty())
+		msg += " (" + logMessage + ")";
 	sentry_value_t event = sentry_value_new_message_event(SENTRY_LEVEL_ERROR, "render", msg.c_str());
 
 	sentry_value_t tags = sentry_value_new_object();
 	sentry_value_set_by_key(tags, "feature", sentry_value_new_string("render"));
+	sentry_value_set_by_key(tags, "gpu_device_type", sentry_value_new_string(deviceType.c_str()));
+	sentry_value_set_by_key(tags, "failure_stage", sentry_value_new_string(failureStage));
 	sentry_value_set_by_key(event, "tags", tags);
 
 	sentry_value_t ctx = sentry_value_new_object();
 	sentry_value_set_by_key(ctx, "path", sentry_value_new_string(path.c_str()));
+	sentry_value_set_by_key(ctx, "file_exists", sentry_value_new_bool(fileExists));
+	sentry_value_set_by_key(ctx, "log_message",
+				sentry_value_new_string(logMessage.empty() ? "(no log output captured)"
+									   : logMessage.c_str()));
+	sentry_value_set_by_key(ctx, "device_name", sentry_value_new_string(deviceName.c_str()));
+	sentry_value_set_by_key(ctx, "device_type", sentry_value_new_string(deviceType.c_str()));
+	sentry_value_set_by_key(ctx, "driver_version", sentry_value_new_string(driverVersion.c_str()));
 	sentry_value_t contexts = sentry_value_new_object();
 	sentry_value_set_by_key(contexts, "shader", ctx);
 	sentry_value_set_by_key(event, "contexts", contexts);
