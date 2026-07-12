@@ -12,12 +12,15 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstdarg>
+#include <cstdio>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include <util/base.h>
 #include <util/platform.h>
 #include <plugin-support.h>
 #include "obs-utils/obs-utils.hpp"
@@ -44,6 +47,42 @@ static constexpr int BRIA_JPEG_QUALITY = 60;
 // this long before showing it again (so a stuck reconnect loop reminds the
 // user periodically instead of either spamming or going silent).
 static constexpr uint64_t BRIA_ERROR_POPUP_REPEAT_MS = 30000;
+
+// ---------------------------------------------------------------------------
+// Diagnostics for shader load failures
+// ---------------------------------------------------------------------------
+
+// gs_effect_create_from_file() only ever returns NULL on failure — the actual
+// compiler/parser error is written by libobs straight to the OBS log via
+// blog(). This installs a temporary log handler around the call so that
+// error text can be attached to the Sentry report instead of being lost.
+// The previous handler is still forwarded to so normal OBS logging is
+// unaffected.
+struct ShaderLoadLogCtx {
+	std::string *out;
+	log_handler_t prevHandler;
+	void *prevParam;
+};
+
+static void bria_shader_load_log_handler(int lvl, const char *msg, va_list args, void *param)
+{
+	auto *ctx = static_cast<ShaderLoadLogCtx *>(param);
+
+	va_list argsCopy;
+	va_copy(argsCopy, args);
+	char buf[1024];
+	vsnprintf(buf, sizeof(buf), msg, argsCopy);
+	va_end(argsCopy);
+
+	if (lvl <= LOG_WARNING) {
+		if (!ctx->out->empty())
+			ctx->out->append(" | ");
+		ctx->out->append(buf);
+	}
+
+	if (ctx->prevHandler)
+		ctx->prevHandler(lvl, msg, args, ctx->prevParam);
+}
 
 // ---------------------------------------------------------------------------
 // Filter data struct
@@ -420,9 +459,37 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	obs_enter_graphics();
 	char *effect_path = obs_module_file(BRIA_EFFECT_PATH);
 	gs_effect_destroy(tf->effect);
-	tf->effect = gs_effect_create_from_file(effect_path, NULL);
-	if (!tf->effect)
-		BriaSentry::captureShaderLoadFailed(effect_path ? effect_path : BRIA_EFFECT_PATH);
+
+	std::string shaderLog;
+	ShaderLoadLogCtx logCtx{&shaderLog, nullptr, nullptr};
+	base_get_log_handler(&logCtx.prevHandler, &logCtx.prevParam);
+	base_set_log_handler(bria_shader_load_log_handler, &logCtx);
+
+	// gs_effect_create_from_file()'s error_string out-param carries
+	// effect-parser/syntax errors (e.g. malformed .effect text), which are
+	// never routed through blog() — only deeper D3D11 HLSL compile failures
+	// are. Both must be captured to get the real cause of a load failure.
+	char *parserError = nullptr;
+	tf->effect = gs_effect_create_from_file(effect_path, &parserError);
+
+	base_set_log_handler(logCtx.prevHandler, logCtx.prevParam);
+
+	if (!tf->effect) {
+		const bool fileExists = effect_path && os_file_exists(effect_path);
+		const char *deviceName = gs_get_device_name();
+		const char *driverVersion = gs_get_driver_version();
+		const std::string deviceType =
+			gs_get_device_type() == GS_DEVICE_DIRECT3D_11 ? "D3D11" : "OpenGL";
+		if (parserError && *parserError) {
+			if (!shaderLog.empty())
+				shaderLog.append(" | ");
+			shaderLog.append(parserError);
+		}
+		BriaSentry::captureShaderLoadFailed(effect_path ? effect_path : BRIA_EFFECT_PATH, fileExists,
+						     shaderLog, deviceName ? deviceName : "", deviceType,
+						     driverVersion ? driverVersion : "");
+	}
+	bfree(parserError);
 	bfree(effect_path);
 	obs_leave_graphics();
 
