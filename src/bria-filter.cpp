@@ -478,16 +478,15 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		const bool fileExists = effect_path && os_file_exists(effect_path);
 		const char *deviceName = gs_get_device_name();
 		const char *driverVersion = gs_get_driver_version();
-		const std::string deviceType =
-			gs_get_device_type() == GS_DEVICE_DIRECT3D_11 ? "D3D11" : "OpenGL";
+		const std::string deviceType = gs_get_device_type() == GS_DEVICE_DIRECT3D_11 ? "D3D11" : "OpenGL";
 		if (parserError && *parserError) {
 			if (!shaderLog.empty())
 				shaderLog.append(" | ");
 			shaderLog.append(parserError);
 		}
-		BriaSentry::captureShaderLoadFailed(effect_path ? effect_path : BRIA_EFFECT_PATH, fileExists,
-						     shaderLog, deviceName ? deviceName : "", deviceType,
-						     driverVersion ? driverVersion : "");
+		BriaSentry::captureShaderLoadFailed(effect_path ? effect_path : BRIA_EFFECT_PATH, fileExists, shaderLog,
+						    deviceName ? deviceName : "", deviceType,
+						    driverVersion ? driverVersion : "");
 	}
 	bfree(parserError);
 	bfree(effect_path);

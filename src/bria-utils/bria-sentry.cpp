@@ -104,8 +104,8 @@ void captureAuthRenewalFailed()
 }
 
 void captureShaderLoadFailed(const std::string &path, bool fileExists, const std::string &logMessage,
-			      const std::string &deviceName, const std::string &deviceType,
-			      const std::string &driverVersion)
+			     const std::string &deviceName, const std::string &deviceType,
+			     const std::string &driverVersion)
 {
 	const char *failureStage = fileExists ? "compile_error" : "file_missing";
 
@@ -124,8 +124,8 @@ void captureShaderLoadFailed(const std::string &path, bool fileExists, const std
 	sentry_value_set_by_key(ctx, "path", sentry_value_new_string(path.c_str()));
 	sentry_value_set_by_key(ctx, "file_exists", sentry_value_new_bool(fileExists));
 	sentry_value_set_by_key(ctx, "log_message",
-				 sentry_value_new_string(logMessage.empty() ? "(no log output captured)"
-									     : logMessage.c_str()));
+				sentry_value_new_string(logMessage.empty() ? "(no log output captured)"
+									   : logMessage.c_str()));
 	sentry_value_set_by_key(ctx, "device_name", sentry_value_new_string(deviceName.c_str()));
 	sentry_value_set_by_key(ctx, "device_type", sentry_value_new_string(deviceType.c_str()));
 	sentry_value_set_by_key(ctx, "driver_version", sentry_value_new_string(driverVersion.c_str()));
