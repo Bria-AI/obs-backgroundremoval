@@ -213,14 +213,21 @@ bool BriaRmbgClient::connect(const std::string &apiToken)
 
 void BriaRmbgClient::disconnect()
 {
-	if (!connected_.exchange(false)) {
-		return;
-	}
+	// Note: connected_ is already false by the time a server-initiated close
+	// reaches its connectionCallback_ (handleMessage sets it before invoking
+	// the callback) — so this must NOT early-return on that check. Doing so
+	// used to make disconnect() a no-op when called from a close handler
+	// (e.g. to permanently stop retrying after an unauthorized session),
+	// leaving webSocket_'s automatic reconnection running forever.
+	const bool wasConnected = connected_.exchange(false);
 
-	if (webSocket_.getReadyState() == ix::ReadyState::Open) {
+	if (wasConnected && webSocket_.getReadyState() == ix::ReadyState::Open) {
 		webSocket_.send(R"({"type":"stop"})");
 	}
 
+	// Always stop the socket, even if we were already marked disconnected —
+	// this is what actually halts automatic reconnection. Safe to call when
+	// already stopped.
 	webSocket_.stop();
 
 	{

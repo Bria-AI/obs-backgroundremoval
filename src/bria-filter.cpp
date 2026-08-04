@@ -115,6 +115,17 @@ struct bria_removal_filter : public filter_data, public std::enable_shared_from_
 	// the dialog for a filter that no longer exists.
 	std::atomic<bool> destroyed{false};
 
+	// Set once a close code arrives that shouldRetryOnClose() says won't
+	// recover on its own (anything but capacity/1013), and only cleared when
+	// a fresh connect() is issued (new/changed token, or source
+	// reactivation). While set, the connection callback ignores every
+	// further Open/Close event on the doomed connection so a reconnect that
+	// sneaks in during the disconnect() race below can't overwrite
+	// lastCloseCode with some other code (which previously showed e.g.
+	// "Connecting… Service Busy" right after a 1008), and can't re-open the
+	// popup/API traffic either.
+	std::atomic<bool> sessionStoppedPermanently{false};
+
 	// Frame buffer: frameId → BGRA pixels captured at submission time.
 	// The mask callback looks up the matching frame so compositing is always
 	// temporally synchronised (same approach as bria-source.cpp).
@@ -267,19 +278,29 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	// When the WebSocket drops clear the composited output and the frame
 	// buffer so the "Connecting…"/error overlay reappears immediately.  For
 	// known close codes (1008/1011/4003/1013/4008) also record the reason so
-	// the overlay can show it, and surface a popup — at most one at a time,
-	// and at most once every BRIA_ERROR_POPUP_REPEAT_MS overall (not per
-	// error code), so a stuck reconnect loop — even one that flaps between
-	// different error codes — can't stack popups, while still periodically
-	// reminding the user it's unresolved. When the server sends a detailed
-	// error message (e.g. a specific quota-exceeded explanation) it's shown
-	// verbatim instead of our generic per-code text. The error state is only
+	// the overlay can show it, and surface a popup — at most one at a time.
+	// CapacityExceeded (1013) is the only reason that can recur while the
+	// session keeps auto-reconnecting, so it alone is rate-limited to once
+	// every BRIA_ERROR_POPUP_REPEAT_MS; every other reason is terminal
+	// (session stopped for good) and always shows immediately. When the
+	// server sends a detailed error message (e.g. a specific
+	// quota-exceeded explanation) it's shown verbatim instead of our
+	// generic per-code text. The error state is only
 	// cleared once a mask actually arrives (see setMaskCallback below) — a
 	// bare reconnect (Open) doesn't prove the underlying issue is resolved,
 	// since e.g. an unauthorized session can accept the handshake and then
 	// immediately close again on every auto-reconnect attempt.
 	tf->briaClient->setConnectionCallback([tf](bool connected, int closeCode, const std::string &closeReason,
 						   const std::string &serverMessage) {
+		// Once 1008 has permanently failed this connection, ignore
+		// everything else it reports — a reconnect that snuck in before
+		// disconnect() took effect would otherwise flip the overlay/popup
+		// state away from Unauthorized using a close code from a
+		// connection we're already tearing down.
+		if (tf->sessionStoppedPermanently.load()) {
+			return;
+		}
+
 		if (connected) {
 			obs_log(LOG_INFO, "Bria removal filter: reconnected — waiting for first mask");
 			return;
@@ -295,18 +316,30 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		}
 
 		const BriaCloseReason reason = classifyCloseCode(closeCode);
-		if (reason == BriaCloseReason::Unknown) {
-			tf->lastCloseCode.store(0);
-			tf->lastErrorPopupMs.store(0);
-			obs_log(LOG_INFO, "Bria removal filter: connection lost (code %d) — showing Connecting overlay",
-				closeCode);
-			return;
-		}
 
-		obs_log(LOG_INFO, "Bria removal filter: connection lost (code %d: %s) — showing error overlay",
-			closeCode, closeReason.c_str());
+		obs_log(LOG_INFO, "Bria removal filter: connection lost (code %d: %s)", closeCode, closeReason.c_str());
 
 		tf->lastCloseCode.store(closeCode);
+
+		// Only capacity-exceeded (1013) recovers by retrying — the server is
+		// just full, and a later attempt may land. Every other reason (bad
+		// auth, plan/session limit, timeout, or a code we don't recognize)
+		// won't recover: the server will just reject every reconnect the
+		// same way. ix::WebSocket's automatic reconnection would otherwise
+		// keep hammering the API and re-triggering this same callback
+		// indefinitely, so tear the connection down for good here; the
+		// popup below is the only thing the user sees from this point on.
+		// Done on a detached thread since disconnect() does socket I/O and
+		// this callback runs on the ixwebsocket thread itself.
+		if (!shouldRetryOnClose(reason)) {
+			tf->sessionStoppedPermanently.store(true);
+			std::thread([tf]() {
+				std::lock_guard<std::mutex> lock(tf->clientMutex);
+				if (tf->briaClient) {
+					tf->briaClient->disconnect();
+				}
+			}).detach();
+		}
 
 		// Prefer a detailed message from a preceding JSON error frame; the
 		// WebSocket close frame's own reason text is often the actual
@@ -315,13 +348,19 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		// generic per-reason text (handled inside bria_show_error_dialog).
 		const std::string detail = !serverMessage.empty() ? serverMessage : closeReason;
 
-		// One popup at a time, at least BRIA_ERROR_POPUP_REPEAT_MS apart —
-		// regardless of whether the error code just changed, so flapping
-		// between e.g. capacity-exceeded and unauthorized can't chain popups.
+		// One popup at a time. CapacityExceeded (1013) can recur many times
+		// during a long reconnect loop, so it stays rate-limited to at most
+		// once every BRIA_ERROR_POPUP_REPEAT_MS. Every other reason is a
+		// terminal, one-shot event — sessionStoppedPermanently (set above)
+		// guarantees it can't fire again for this connection — so it must
+		// always show immediately rather than risk being swallowed by a
+		// cooldown started by an unrelated, still-retrying capacity popup
+		// (e.g. a 1008 arriving moments after a 1013 popup was shown).
 		const uint64_t nowMs = os_gettime_ns() / 1000000ULL;
 		const uint64_t lastShownMs = tf->lastErrorPopupMs.load();
 		const bool cooldownElapsed = lastShownMs == 0 || nowMs - lastShownMs >= BRIA_ERROR_POPUP_REPEAT_MS;
-		if (cooldownElapsed && !tf->errorPopupInFlight.exchange(true)) {
+		const bool mayShow = reason == BriaCloseReason::CapacityExceeded ? cooldownElapsed : true;
+		if (mayShow && !tf->errorPopupInFlight.exchange(true)) {
 			tf->lastErrorPopupMs.store(nowMs);
 			QMetaObject::invokeMethod(
 				qApp,
@@ -434,7 +473,8 @@ void bria_filter_update(void *data, obs_data_t *settings)
 					std::lock_guard<std::mutex> lock(lockedTf->clientMutex);
 					if (!token.empty() && token != lockedTf->lastConnectedToken) {
 						lockedTf->lastConnectedToken = token;
-						lockedTf->briaClient->connect(token);
+						lockedTf->sessionStoppedPermanently.store(false);
+					lockedTf->briaClient->connect(token);
 						lockedTf->isDisabled = false;
 					} else if (token.empty()) {
 						lockedTf->briaClient->disconnect();
@@ -498,6 +538,7 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		std::unique_lock<std::mutex> lock(tf->clientMutex);
 		if (!token.empty() && token != tf->lastConnectedToken) {
 			tf->lastConnectedToken = token;
+			tf->sessionStoppedPermanently.store(false);
 			if (!tf->briaClient->connect(token)) {
 				obs_log(LOG_ERROR, "Bria removal filter: failed to connect to API");
 			}
@@ -525,6 +566,18 @@ void bria_filter_activate(void *data)
 	if (tf && tf->stopWhenSourceIsInactive) {
 		obs_log(LOG_INFO, "Bria removal filter activated");
 		tf->isDisabled = false;
+
+		// Reconnect on its own thread — connect() does network I/O and must
+		// never block the OBS render/UI thread that calls activate/deactivate.
+		std::thread([tf]() {
+			const std::string token = BriaAuthClient::instance().getApiToken();
+			std::lock_guard<std::mutex> lock(tf->clientMutex);
+			if (tf->briaClient && !token.empty()) {
+				tf->sessionStoppedPermanently.store(false);
+				tf->briaClient->connect(token);
+				tf->lastConnectedToken = token;
+			}
+		}).detach();
 	}
 }
 
@@ -538,6 +591,18 @@ void bria_filter_deactivate(void *data)
 	if (tf && tf->stopWhenSourceIsInactive) {
 		obs_log(LOG_INFO, "Bria removal filter deactivated");
 		tf->isDisabled = true;
+
+		// Tear down the WebSocket session instead of leaving it open and idle —
+		// an idle-but-connected session still occupies a slot against the
+		// account's concurrent-session limit (and auto-reconnect on a
+		// server-side timeout of that idle session can itself trip the limit),
+		// which was surfacing as spurious "4003 session limit reached" closes.
+		std::thread([tf]() {
+			std::lock_guard<std::mutex> lock(tf->clientMutex);
+			if (tf->briaClient) {
+				tf->briaClient->disconnect();
+			}
+		}).detach();
 	}
 }
 
@@ -671,15 +736,17 @@ void bria_filter_video_tick(void *data, float seconds)
 // feedback while the plugin is waiting for the first mask from the API, or
 // when the last WebSocket close code indicates a known error condition.
 //
-// Rules:
-//  - No error (or an unrecognized close code): just the animated
-//    "Connecting…" line, as before.
-//  - Unauthorized / GeneralError: these won't recover on their own (need
-//    sign-in, or are a server-side fault), so only the error line is shown —
-//    no "Connecting…" underneath it.
-//  - SessionLimitReached / CapacityExceeded / SessionTimeout: these are all
-//    still retried automatically, so both lines are shown together —
-//    "Connecting…" plus the specific reason.
+// Rules (mirrors shouldRetryOnClose(): only capacity actually retries):
+//  - No error, or an unrecognized close code: just the animated
+//    "Connecting…" line, as before. Unrecognized also covers our own
+//    disconnect()-triggered closes (filter deactivate/destroy), which are
+//    not errors.
+//  - CapacityExceeded: the only reason still retried automatically, so both
+//    lines are shown together — "Connecting…" plus "Service Busy".
+//  - Unauthorized / GeneralError / SessionLimitReached / SessionTimeout: the
+//    session has been stopped for good (see sessionStoppedPermanently), so
+//    no "Connecting…" — just the static reason line (Unauthorized shows
+//    none; the popup is the only feedback).
 static cv::Mat makeConnectingFrame(const cv::Mat &bgra, int closeCode)
 {
 	cv::Mat frame = bgra.clone();
@@ -706,16 +773,21 @@ static cv::Mat makeConnectingFrame(const cv::Mat &bgra, int closeCode)
 		errorText = "Something Went Wrong";
 		break;
 	case BriaCloseReason::SessionLimitReached:
+		showConnecting = false;
 		errorText = "Plan Limit Reached";
 		break;
 	case BriaCloseReason::CapacityExceeded:
 		errorText = "Service Busy";
 		break;
 	case BriaCloseReason::SessionTimeout:
+		showConnecting = false;
 		errorText = "Session Timed Out";
 		break;
 	case BriaCloseReason::Unknown:
 	default:
+		// Deliberately unchanged: an unrecognized code also covers our own
+		// disconnect()-triggered closes (e.g. filter deactivate/destroy),
+		// which aren't errors, so keep the plain animated "Connecting…".
 		break;
 	}
 
