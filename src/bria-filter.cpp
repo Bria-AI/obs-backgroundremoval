@@ -228,14 +228,17 @@ obs_properties_t *bria_filter_properties(void *data)
 	obs_properties_add_text(props, "bria_auth_status", obs_module_text("BriaNotSignedIn"), OBS_TEXT_INFO);
 
 	// All auth buttons always present; visibility controlled by bria_auth_update_ui
-	obs_properties_add_button(props, "btn_sign_in", obs_module_text("BriaSignIn"), bria_filter_sign_in_clicked);
-	obs_properties_add_button(props, "btn_refresh_status", obs_module_text("BriaRefreshStatus"),
-				  [](obs_properties_t *p2, obs_property_t *prop, void *) -> bool {
-					  return bria_auth_update_ui(p2, prop, nullptr);
-				  });
-	obs_properties_add_button(props, "btn_sign_out", obs_module_text("BriaSignOut"), bria_filter_sign_out_clicked);
-	obs_properties_add_button(props, "btn_report_issue", obs_module_text("BriaReportIssue"),
-				  bria_filter_report_issue_clicked);
+	obs_properties_add_button2(props, "btn_sign_in", obs_module_text("BriaSignIn"), bria_filter_sign_in_clicked,
+				   nullptr);
+	obs_properties_add_button2(props, "btn_refresh_status", obs_module_text("BriaRefreshStatus"),
+				   [](obs_properties_t *p2, obs_property_t *prop, void *) -> bool {
+					   return bria_auth_update_ui(p2, prop, nullptr);
+				   },
+				   nullptr);
+	obs_properties_add_button2(props, "btn_sign_out", obs_module_text("BriaSignOut"), bria_filter_sign_out_clicked,
+				   nullptr);
+	obs_properties_add_button2(props, "btn_report_issue", obs_module_text("BriaReportIssue"),
+				   bria_filter_report_issue_clicked, nullptr);
 	obs_properties_add_bool(props, "stop_when_source_is_inactive", obs_module_text("BriaStopWhenInactive"));
 
 	// Set initial state (text + visibility) when the dialog first opens
