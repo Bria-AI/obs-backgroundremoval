@@ -48,7 +48,6 @@ inline BriaCloseReason classifyCloseCode(int code)
 	}
 }
 
-
 // capacity (1013) is the only transient close — the server is just full and
 // a later retry may succeed. Every other reason, including an unrecognized
 // code, means retrying won't help (bad auth, plan/session limit, timeout, or
