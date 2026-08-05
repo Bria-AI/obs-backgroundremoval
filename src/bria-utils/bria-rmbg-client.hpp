@@ -20,8 +20,7 @@
 #include <unordered_map>
 
 // Classifies a WebSocket close code into a known, user-facing reason.
-// Unknown codes map to Unknown, which keeps today's silent-retry behavior
-// (no popup, generic "Connecting..." overlay).
+// Codes we don't recognize map to Unknown.
 enum class BriaCloseReason {
 	Unknown,
 	Unauthorized,
@@ -47,6 +46,17 @@ inline BriaCloseReason classifyCloseCode(int code)
 	default:
 		return BriaCloseReason::Unknown;
 	}
+}
+
+
+// capacity (1013) is the only transient close — the server is just full and
+// a later retry may succeed. Every other reason, including an unrecognized
+// code, means retrying won't help (bad auth, plan/session limit, timeout, or
+// something we don't have a specific handler for), so the session should be
+// torn down instead of left to ix::WebSocket's automatic reconnection.
+inline bool shouldRetryOnClose(BriaCloseReason reason)
+{
+	return reason == BriaCloseReason::CapacityExceeded;
 }
 
 class BriaRmbgClient {
