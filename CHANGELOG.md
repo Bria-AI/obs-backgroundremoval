@@ -8,6 +8,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4](https://github.com/Bria-AI/obs-backgroundremoval/compare/v0.1.3...v0.1.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **ci:** update Homebrew before installing clang-format ([#27](https://github.com/Bria-AI/obs-backgroundremoval/issues/27)) ([b59768d](https://github.com/Bria-AI/obs-backgroundremoval/commit/b59768d3ba5535fd1e89bc374d60ad128a948dc8))
+* enhancements on error handling ([#24](https://github.com/Bria-AI/obs-backgroundremoval/issues/24)) ([8b9800f](https://github.com/Bria-AI/obs-backgroundremoval/commit/8b9800fc89bcfb61dd530c6a9edde1c955c1f19d))
+* plugins build ([#26](https://github.com/Bria-AI/obs-backgroundremoval/issues/26)) ([fffb891](https://github.com/Bria-AI/obs-backgroundremoval/commit/fffb891ed02c6ee907441dcc7ed5cfc72edcacc3))
+
 ## [0.1.3](https://github.com/Bria-AI/obs-backgroundremoval/compare/v0.1.2...v0.1.3) (2026-07-12)
 
 
