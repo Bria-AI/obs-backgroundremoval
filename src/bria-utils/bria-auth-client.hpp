@@ -52,6 +52,11 @@ public:
 	bool isAuthenticated() const;
 	bool isCheckingAuth() const;
 
+	// True from the start of logout() through its notifyCallbacks() call — lets
+	// callers tell a deliberate sign-out apart from the token/block state simply
+	// having been cleared, so they don't show a block-reason popup on sign-out.
+	bool isLoggingOut() const;
+
 	std::string getApiToken() const;
 	std::string getOrgName() const;
 	std::string getOrgId() const;
@@ -119,6 +124,7 @@ private:
 	std::atomic<bool> checkingAuth_{false};
 	std::atomic<bool> stopPoll_{false};
 	std::atomic<bool> stopStatusCheck_{false};
+	std::atomic<bool> loggingOut_{false};
 
 	std::thread pollThread_;
 	std::thread statusCheckThread_;
