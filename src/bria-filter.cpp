@@ -518,97 +518,96 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	// so both are done on a detached thread to avoid freezing any caller (including the
 	// OBS UI thread during logout).
 	if (!tf->authCallbackRegistered) {
-		tf->authCallbackHandle =
-			BriaAuthClient::instance().addCallback([weakTf = std::weak_ptr<bria_removal_filter>(tf)]() {
-				const std::string token = BriaAuthClient::instance().getApiToken();
-				const std::string blockReason = BriaAuthClient::instance().getBlockReason();
-				const std::string email = BriaAuthClient::instance().getUserEmail();
-				if (!email.empty()) {
-					BriaAnalytics::instance().identify(email,
-									   BriaAuthClient::instance().getUserName(),
-									   BriaAuthClient::instance().getOrgId(),
-									   BriaAuthClient::instance().getOrgName());
-				}
+		tf->authCallbackHandle = BriaAuthClient::instance().addCallback([weakTf = std::weak_ptr<
+											 bria_removal_filter>(tf)]() {
+			const std::string token = BriaAuthClient::instance().getApiToken();
+			const std::string blockReason = BriaAuthClient::instance().getBlockReason();
+			const std::string email = BriaAuthClient::instance().getUserEmail();
+			if (!email.empty()) {
+				BriaAnalytics::instance().identify(email, BriaAuthClient::instance().getUserName(),
+								   BriaAuthClient::instance().getOrgId(),
+								   BriaAuthClient::instance().getOrgName());
+			}
 
-				// The org has hit the OBS trial limits — tear the session down for
-				// good and show the same popup used for a server-side WebSocket
-				// close, rather than attempting to (re)connect below.
-				if (blockReason == BriaAuthClient::BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS) {
-					std::thread([weakTf]() {
-						auto lockedTf = weakTf.lock();
-						if (!lockedTf) {
-							return;
-						}
-						lockedTf->sessionStoppedPermanently.store(true);
-						// This is one of two independent ways the same block can be
-						// detected — the other being the WebSocket close handler's
-						// own free-tier-limit message check below. exchange(true)
-						// makes whichever one gets here first win and the other back
-						// off, instead of both queuing their own popup. Deliberately
-						// a dedicated flag rather than sessionStoppedPermanently
-						// above, which can already be true from an unrelated close.
-						if (lockedTf->subscriptionLimitPopupHandled.exchange(true)) {
-							return;
-						}
-						lockedTf->lastCloseCode.store(kSubscriptionLimitsCloseCode);
-						{
-							std::lock_guard<std::mutex> lock(lockedTf->clientMutex);
-							if (lockedTf->briaClient) {
-								lockedTf->briaClient->disconnect();
-							}
-							lockedTf->lastConnectedToken.clear();
-						}
-						// A deliberate sign-out already clears block state on its own;
-						// showing "your trial has ended, upgrade" as someone signs out
-						// is just confusing, not useful.
-						if (BriaAuthClient::instance().isLoggingOut()) {
-							return;
-						}
-						// Terminal, one-shot event (same reasoning as the WebSocket
-						// close handler above) — must not be dropped just because
-						// some other dialog (e.g. a still-open capacity popup)
-						// currently holds errorPopupInFlight, since nothing will
-						// ever re-trigger this once sessionStoppedPermanently is set.
-						QMetaObject::invokeMethod(
-							qApp,
-							[lockedTf]() {
-								if (!lockedTf->destroyed.load()) {
-									bria_show_error_dialog(
-										BriaCloseReason::SubscriptionLimitsReached, "");
-								}
-							},
-							Qt::QueuedConnection);
-					}).detach();
-					return;
-				}
-
-				std::thread([weakTf, token]() {
+			// The org has hit the OBS trial limits — tear the session down for
+			// good and show the same popup used for a server-side WebSocket
+			// close, rather than attempting to (re)connect below.
+			if (blockReason == BriaAuthClient::BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS) {
+				std::thread([weakTf]() {
 					auto lockedTf = weakTf.lock();
 					if (!lockedTf) {
 						return;
 					}
-					std::lock_guard<std::mutex> lock(lockedTf->clientMutex);
-					if (!token.empty() && token != lockedTf->lastConnectedToken) {
-						lockedTf->lastConnectedToken = token;
-						lockedTf->sessionStoppedPermanently.store(false);
-						lockedTf->subscriptionLimitPopupHandled.store(false);
-						lockedTf->briaClient->connect(token);
-						lockedTf->isDisabled = false;
-					} else if (token.empty()) {
-						lockedTf->briaClient->disconnect();
-						lockedTf->lastConnectedToken.clear();
-						// Signing out is a clean slate: without this, re-signing into
-						// the *same* still-blocked org afterwards would never re-fire
-						// the popup, since the reset above only runs when the token
-						// actually changes from lastConnectedToken — but that variable
-						// was never set to begin with when the block was detected
-						// before ever reaching a successful connect() (see the
-						// subscription-limits branch above, which returns early).
-						lockedTf->sessionStoppedPermanently.store(false);
-						lockedTf->subscriptionLimitPopupHandled.store(false);
+					lockedTf->sessionStoppedPermanently.store(true);
+					// This is one of two independent ways the same block can be
+					// detected — the other being the WebSocket close handler's
+					// own free-tier-limit message check below. exchange(true)
+					// makes whichever one gets here first win and the other back
+					// off, instead of both queuing their own popup. Deliberately
+					// a dedicated flag rather than sessionStoppedPermanently
+					// above, which can already be true from an unrelated close.
+					if (lockedTf->subscriptionLimitPopupHandled.exchange(true)) {
+						return;
 					}
+					lockedTf->lastCloseCode.store(kSubscriptionLimitsCloseCode);
+					{
+						std::lock_guard<std::mutex> lock(lockedTf->clientMutex);
+						if (lockedTf->briaClient) {
+							lockedTf->briaClient->disconnect();
+						}
+						lockedTf->lastConnectedToken.clear();
+					}
+					// A deliberate sign-out already clears block state on its own;
+					// showing "your trial has ended, upgrade" as someone signs out
+					// is just confusing, not useful.
+					if (BriaAuthClient::instance().isLoggingOut()) {
+						return;
+					}
+					// Terminal, one-shot event (same reasoning as the WebSocket
+					// close handler above) — must not be dropped just because
+					// some other dialog (e.g. a still-open capacity popup)
+					// currently holds errorPopupInFlight, since nothing will
+					// ever re-trigger this once sessionStoppedPermanently is set.
+					QMetaObject::invokeMethod(
+						qApp,
+						[lockedTf]() {
+							if (!lockedTf->destroyed.load()) {
+								bria_show_error_dialog(
+									BriaCloseReason::SubscriptionLimitsReached, "");
+							}
+						},
+						Qt::QueuedConnection);
 				}).detach();
-			});
+				return;
+			}
+
+			std::thread([weakTf, token]() {
+				auto lockedTf = weakTf.lock();
+				if (!lockedTf) {
+					return;
+				}
+				std::lock_guard<std::mutex> lock(lockedTf->clientMutex);
+				if (!token.empty() && token != lockedTf->lastConnectedToken) {
+					lockedTf->lastConnectedToken = token;
+					lockedTf->sessionStoppedPermanently.store(false);
+					lockedTf->subscriptionLimitPopupHandled.store(false);
+					lockedTf->briaClient->connect(token);
+					lockedTf->isDisabled = false;
+				} else if (token.empty()) {
+					lockedTf->briaClient->disconnect();
+					lockedTf->lastConnectedToken.clear();
+					// Signing out is a clean slate: without this, re-signing into
+					// the *same* still-blocked org afterwards would never re-fire
+					// the popup, since the reset above only runs when the token
+					// actually changes from lastConnectedToken — but that variable
+					// was never set to begin with when the block was detected
+					// before ever reaching a successful connect() (see the
+					// subscription-limits branch above, which returns early).
+					lockedTf->sessionStoppedPermanently.store(false);
+					lockedTf->subscriptionLimitPopupHandled.store(false);
+				}
+			}).detach();
+		});
 		tf->authCallbackRegistered = true;
 	}
 
