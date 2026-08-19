@@ -108,8 +108,8 @@ private:
 	static std::string httpPost(const std::string &url, const std::string &jsonBody);
 	static std::string extractJsonString(const std::string &json, const std::string &key);
 
-	static constexpr const char *BASE_URL = "http://127.0.0.1:5001/plugins/auth";
-	static constexpr const char *LOGIN_URL = "http://localhost:5174/plugin-login";
+		static constexpr const char *BASE_URL = "https://platform-api.bria.ai/plugins/auth";
+	static constexpr const char *LOGIN_URL = "https://platform.bria.ai/plugin-login";
 	static constexpr int POLL_INTERVAL_MS = 2000;
 	static constexpr int MAX_CONSECUTIVE_ERRORS = 30;
 	static constexpr int STATUS_CHECK_INTERVAL_MS = 5 * 60 * 1000;
