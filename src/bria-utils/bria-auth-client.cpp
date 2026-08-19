@@ -62,6 +62,7 @@ BriaAuthClient::~BriaAuthClient()
 	if (pollThread_.joinable()) {
 		pollThread_.join();
 	}
+	stopStatusCheckLoop();
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +72,7 @@ BriaAuthClient::~BriaAuthClient()
 void BriaAuthClient::startLoginFlow()
 {
 	cancelLoginFlow();
+	stopStatusCheckLoop();
 
 	const std::string sessionId = generateSessionId();
 
@@ -103,6 +105,7 @@ void BriaAuthClient::cancelLoginFlow()
 void BriaAuthClient::logout()
 {
 	cancelLoginFlow();
+	stopStatusCheckLoop();
 
 	// Clear auth state immediately so the UI reflects it without delay.
 	std::string sessionId, encToken;
@@ -164,6 +167,12 @@ std::string BriaAuthClient::getUserName() const
 {
 	std::lock_guard<std::mutex> lock(stateMutex_);
 	return authData_.userName;
+}
+
+std::string BriaAuthClient::getBlockReason() const
+{
+	std::lock_guard<std::mutex> lock(stateMutex_);
+	return blockReason_;
 }
 
 BriaAuthClient::CallbackHandle BriaAuthClient::addCallback(Callback cb)
@@ -345,6 +354,49 @@ void BriaAuthClient::runPollLoop(std::string sessionId)
 	}
 }
 
+void BriaAuthClient::startStatusCheckLoop()
+{
+	stopStatusCheckLoop();
+	stopStatusCheck_.store(false);
+	statusCheckThread_ = std::thread(&BriaAuthClient::runStatusCheckLoop, this);
+}
+
+void BriaAuthClient::stopStatusCheckLoop()
+{
+	stopStatusCheck_.store(true);
+	if (statusCheckThread_.joinable()) {
+		statusCheckThread_.join();
+	}
+}
+
+void BriaAuthClient::runStatusCheckLoop()
+{
+	std::string sessionId;
+	{
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		sessionId = sessionId_;
+	}
+	if (sessionId.empty()) {
+		return;
+	}
+
+	while (!stopStatusCheck_.load() && authenticated_.load()) {
+		for (int waited = 0; waited < STATUS_CHECK_INTERVAL_MS && !stopStatusCheck_.load(); waited += 200) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		}
+		if (stopStatusCheck_.load() || !authenticated_.load()) {
+			return;
+		}
+
+		const std::string url = std::string(BASE_URL) + "/token_status?plugin_auth_id=" + sessionId;
+		const std::string resp = httpGet(url);
+		if (resp.empty()) {
+			continue;
+		}
+		setBlockReason(extractJsonString(resp, "block_reason"));
+	}
+}
+
 bool BriaAuthClient::pollOnce(const std::string &sessionId, std::string &outEncToken, std::string &outError)
 {
 	const std::string url = std::string(BASE_URL) + "/token_status?plugin_auth_id=" + sessionId;
@@ -358,6 +410,7 @@ bool BriaAuthClient::pollOnce(const std::string &sessionId, std::string &outEncT
 	const std::string token = extractJsonString(resp, "token");
 	if (!token.empty()) {
 		outEncToken = token;
+		setBlockReason(extractJsonString(resp, "block_reason"));
 		return true;
 	}
 
@@ -385,6 +438,7 @@ bool BriaAuthClient::renewTokenRequest(const std::string &sessionId, const std::
 	}
 
 	outEncToken = newToken;
+	setBlockReason(extractJsonString(resp, "block_reason"));
 	return true;
 }
 
@@ -521,11 +575,27 @@ bool BriaAuthClient::decryptToken(const std::string &encToken, AuthData &out) co
 
 void BriaAuthClient::setAuthenticated(AuthData data, const std::string &encToken)
 {
-	std::lock_guard<std::mutex> lock(stateMutex_);
-	authData_ = std::move(data);
-	encryptedToken_ = encToken;
-	authenticated_.store(true);
-	checkingAuth_.store(false);
+	{
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		authData_ = std::move(data);
+		encryptedToken_ = encToken;
+		authenticated_.store(true);
+		checkingAuth_.store(false);
+	}
+	startStatusCheckLoop();
+}
+
+void BriaAuthClient::setBlockReason(const std::string &reason)
+{
+	bool changed = false;
+	{
+		std::lock_guard<std::mutex> lock(stateMutex_);
+		changed = blockReason_ != reason;
+		blockReason_ = reason;
+	}
+	if (changed) {
+		notifyCallbacks();
+	}
 }
 
 void BriaAuthClient::setCheckingAuth(bool checking)
@@ -539,6 +609,7 @@ void BriaAuthClient::clearAuth()
 		std::lock_guard<std::mutex> lock(stateMutex_);
 		authData_ = {};
 		encryptedToken_.clear();
+		blockReason_.clear();
 		authenticated_.store(false);
 		checkingAuth_.store(false);
 	}

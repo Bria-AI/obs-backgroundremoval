@@ -363,12 +363,21 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		const uint64_t nowMs = os_gettime_ns() / 1000000ULL;
 		const uint64_t lastShownMs = tf->lastErrorPopupMs.load();
 		const bool cooldownElapsed = lastShownMs == 0 || nowMs - lastShownMs >= BRIA_ERROR_POPUP_REPEAT_MS;
-		const bool mayShow = reason == BriaCloseReason::CapacityExceeded ? cooldownElapsed : true;
-		if (mayShow && !tf->errorPopupInFlight.exchange(true)) {
+		const bool isCapacity = reason == BriaCloseReason::CapacityExceeded;
+		const bool mayShow = isCapacity ? cooldownElapsed : true;
+		// CapacityExceeded also respects errorPopupInFlight — it can recur many
+		// times during a long reconnect loop, and a still-open capacity dialog
+		// (dialog.exec() blocks until dismissed) shouldn't get a second one
+		// stacked behind it. A terminal reason must not be gated the same way:
+		// sessionStoppedPermanently guarantees it fires only once for this
+		// connection, so skipping it here because some *other* dialog happens
+		// to be open would drop it for good — always queue it regardless.
+		const bool blockedByInFlightDialog = isCapacity && tf->errorPopupInFlight.exchange(true);
+		if (mayShow && !blockedByInFlightDialog) {
 			tf->lastErrorPopupMs.store(nowMs);
 			QMetaObject::invokeMethod(
 				qApp,
-				[tf, reason, detail]() {
+				[tf, reason, detail, isCapacity]() {
 					// The filter may have been removed from the source
 					// while this was queued — tf's shared_ptr keeps the
 					// object alive, but there's nothing left for the
@@ -376,7 +385,9 @@ void bria_filter_update(void *data, obs_data_t *settings)
 					if (!tf->destroyed.load()) {
 						bria_show_error_dialog(reason, detail);
 					}
-					tf->errorPopupInFlight.store(false);
+					if (isCapacity) {
+						tf->errorPopupInFlight.store(false);
+					}
 				},
 				Qt::QueuedConnection);
 		}
@@ -462,6 +473,7 @@ void bria_filter_update(void *data, obs_data_t *settings)
 		tf->authCallbackHandle =
 			BriaAuthClient::instance().addCallback([weakTf = std::weak_ptr<bria_removal_filter>(tf)]() {
 				const std::string token = BriaAuthClient::instance().getApiToken();
+				const std::string blockReason = BriaAuthClient::instance().getBlockReason();
 				const std::string email = BriaAuthClient::instance().getUserEmail();
 				if (!email.empty()) {
 					BriaAnalytics::instance().identify(email,
@@ -469,6 +481,43 @@ void bria_filter_update(void *data, obs_data_t *settings)
 									   BriaAuthClient::instance().getOrgId(),
 									   BriaAuthClient::instance().getOrgName());
 				}
+
+				// The org has hit the OBS trial limits — tear the session down for
+				// good and show the same popup used for a server-side WebSocket
+				// close, rather than attempting to (re)connect below.
+				if (blockReason == BriaAuthClient::BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS) {
+					std::thread([weakTf]() {
+						auto lockedTf = weakTf.lock();
+						if (!lockedTf) {
+							return;
+						}
+						lockedTf->sessionStoppedPermanently.store(true);
+						lockedTf->lastCloseCode.store(kSubscriptionLimitsCloseCode);
+						{
+							std::lock_guard<std::mutex> lock(lockedTf->clientMutex);
+							if (lockedTf->briaClient) {
+								lockedTf->briaClient->disconnect();
+							}
+							lockedTf->lastConnectedToken.clear();
+						}
+						// Terminal, one-shot event (same reasoning as the WebSocket
+						// close handler above) — must not be dropped just because
+						// some other dialog (e.g. a still-open capacity popup)
+						// currently holds errorPopupInFlight, since nothing will
+						// ever re-trigger this once sessionStoppedPermanently is set.
+						QMetaObject::invokeMethod(
+							qApp,
+							[lockedTf]() {
+								if (!lockedTf->destroyed.load()) {
+									bria_show_error_dialog(
+										BriaCloseReason::SubscriptionLimitsReached, "");
+								}
+							},
+							Qt::QueuedConnection);
+					}).detach();
+					return;
+				}
+
 				std::thread([weakTf, token]() {
 					auto lockedTf = weakTf.lock();
 					if (!lockedTf) {
@@ -536,7 +585,16 @@ void bria_filter_update(void *data, obs_data_t *settings)
 	bfree(effect_path);
 	obs_leave_graphics();
 
-	// Connect immediately if already authenticated (token restored from config)
+	// Connect immediately if already authenticated (token restored from config),
+	// unless the org already hit the OBS trial limits (block reason known from a
+	// prior session's status check, persisted only in-memory so this only matters
+	// for a filter re-create within the same OBS run — the auth callback above
+	// handles a block discovered afterwards).
+	if (BriaAuthClient::instance().getBlockReason() == BriaAuthClient::BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS) {
+		tf->isDisabled = true;
+		tf->lastCloseCode.store(kSubscriptionLimitsCloseCode);
+		return;
+	}
 	{
 		const std::string token = BriaAuthClient::instance().getApiToken();
 		std::unique_lock<std::mutex> lock(tf->clientMutex);
@@ -786,6 +844,10 @@ static cv::Mat makeConnectingFrame(const cv::Mat &bgra, int closeCode)
 	case BriaCloseReason::SessionTimeout:
 		showConnecting = false;
 		errorText = "Session Timed Out";
+		break;
+	case BriaCloseReason::SubscriptionLimitsReached:
+		showConnecting = false;
+		errorText = "Trial Ended - Upgrade to Continue";
 		break;
 	case BriaCloseReason::Unknown:
 	default:

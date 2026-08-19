@@ -33,6 +33,9 @@ public:
 		std::string userName;
 	};
 
+	// Reasons the platform can report for a blocked org. Empty string means not blocked.
+	static constexpr const char *BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS = "PASSED_SUBSCRIPTION_LIMITS";
+
 	static BriaAuthClient &instance();
 
 	~BriaAuthClient();
@@ -54,6 +57,10 @@ public:
 	std::string getOrgId() const;
 	std::string getUserEmail() const;
 	std::string getUserName() const;
+
+	// Empty when the org is not blocked; otherwise one of the BLOCK_REASON_* values (or an
+	// unrecognized server-provided reason string).
+	std::string getBlockReason() const;
 
 	// Register/unregister callbacks fired when auth state changes.
 	// Callbacks may be called from the background poll thread.
@@ -84,26 +91,37 @@ private:
 	void clearAuth();
 	void notifyCallbacks();
 
+	// Periodically polls /token_status while authenticated to detect a block_reason
+	// (e.g. the OBS trial ending) without requiring the user to restart the plugin.
+	void startStatusCheckLoop();
+	void stopStatusCheckLoop();
+	void runStatusCheckLoop();
+	void setBlockReason(const std::string &reason);
+
 	static std::string generateSessionId();
 	static std::string httpGet(const std::string &url);
 	static std::string httpPost(const std::string &url, const std::string &jsonBody);
 	static std::string extractJsonString(const std::string &json, const std::string &key);
 
-	static constexpr const char *BASE_URL = "https://platform-api.bria.ai/plugins/auth";
-	static constexpr const char *LOGIN_URL = "https://platform.bria.ai/plugin-login";
+	static constexpr const char *BASE_URL = "http://127.0.0.1:5001/plugins/auth";
+	static constexpr const char *LOGIN_URL = "http://localhost:5174/plugin-login";
 	static constexpr int POLL_INTERVAL_MS = 2000;
 	static constexpr int MAX_CONSECUTIVE_ERRORS = 30;
+	static constexpr int STATUS_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 	mutable std::mutex stateMutex_;
 	AuthData authData_;
 	std::string sessionId_;
 	std::string encryptedToken_;
+	std::string blockReason_;
 
 	std::atomic<bool> authenticated_{false};
 	std::atomic<bool> checkingAuth_{false};
 	std::atomic<bool> stopPoll_{false};
+	std::atomic<bool> stopStatusCheck_{false};
 
 	std::thread pollThread_;
+	std::thread statusCheckThread_;
 
 	std::mutex callbackMutex_;
 	std::unordered_map<CallbackHandle, Callback> callbacks_;

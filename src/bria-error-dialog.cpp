@@ -49,6 +49,9 @@ extern "C" void bria_show_error_dialog(BriaCloseReason reason, const std::string
 	case BriaCloseReason::SessionTimeout:
 		msgKey = "BriaErrorTimeoutMessage";
 		break;
+	case BriaCloseReason::SubscriptionLimitsReached:
+		msgKey = "BriaErrorSubscriptionLimitsMessage";
+		break;
 	case BriaCloseReason::Unknown:
 	default:
 		return;
