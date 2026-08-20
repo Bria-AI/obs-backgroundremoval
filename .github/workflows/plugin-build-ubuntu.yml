@@ -80,6 +80,7 @@ jobs:
 
       - name: Install dependencies from apt (Ubuntu x86_64)
         shell: bash --noprofile --norc -euo pipefail -O nullglob {0}
+        timeout-minutes: 10
         run: |
           APT_PACKAGES=(
             autoconf
@@ -95,6 +96,17 @@ jobs:
           )
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo apt-get remove --purge -y man-db
+
+          # The runner's default azure.archive.ubuntu.com mirror is occasionally
+          # slow/unreachable, which otherwise makes every apt-get update retry each
+          # source repeatedly before falling back to archive.ubuntu.com — adding
+          # several minutes to this step. Fail fast on a bad mirror instead of
+          # hanging on it, so a slow/dead mirror can't turn into this step still
+          # running (and eating the timeout) by the time a newer push cancels it.
+          echo 'Acquire::Retries "2";' | sudo tee /etc/apt/apt.conf.d/99bria-apt-timeouts > /dev/null
+          echo 'Acquire::http::Timeout "10";' | sudo tee -a /etc/apt/apt.conf.d/99bria-apt-timeouts > /dev/null
+          echo 'Acquire::https::Timeout "10";' | sudo tee -a /etc/apt/apt.conf.d/99bria-apt-timeouts > /dev/null
+
           sudo add-apt-repository -y ppa:obsproject/obs-studio
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends "${APT_PACKAGES[@]}"
