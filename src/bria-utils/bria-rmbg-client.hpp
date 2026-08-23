@@ -27,12 +27,23 @@ enum class BriaCloseReason {
 	GeneralError,
 	SessionLimitReached,
 	CapacityExceeded,
-	SessionTimeout
+	SessionTimeout,
+	// Not produced by classifyCloseCode() — set directly by the plugin when
+	// BriaAuthClient reports the org has hit the OBS trial limits (see bria-filter.cpp).
+	SubscriptionLimitsReached
 };
+
+// Not a real WebSocket close code — used internally (see bria-filter.cpp) to
+// drive the "Connecting…" overlay when the plugin itself tears the session
+// down after BriaAuthClient reports a subscription-limit block, i.e. no
+// server-side close ever happens.
+inline constexpr int kSubscriptionLimitsCloseCode = -1;
 
 inline BriaCloseReason classifyCloseCode(int code)
 {
 	switch (code) {
+	case kSubscriptionLimitsCloseCode:
+		return BriaCloseReason::SubscriptionLimitsReached;
 	case 1008:
 		return BriaCloseReason::Unauthorized; // "unauthorized"
 	case 1011:
@@ -55,6 +66,8 @@ inline BriaCloseReason classifyCloseCode(int code)
 // torn down instead of left to ix::WebSocket's automatic reconnection.
 inline bool shouldRetryOnClose(BriaCloseReason reason)
 {
+	// A subscription-limit block won't resolve itself by retrying, same as the
+	// other terminal reasons below.
 	return reason == BriaCloseReason::CapacityExceeded;
 }
 

@@ -33,6 +33,9 @@ public:
 		std::string userName;
 	};
 
+	// Reasons the platform can report for a blocked org. Empty string means not blocked.
+	static constexpr const char *BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS = "PASSED_SUBSCRIPTION_LIMITS";
+
 	static BriaAuthClient &instance();
 
 	~BriaAuthClient();
@@ -49,11 +52,20 @@ public:
 	bool isAuthenticated() const;
 	bool isCheckingAuth() const;
 
+	// True from the start of logout() through its notifyCallbacks() call — lets
+	// callers tell a deliberate sign-out apart from the token/block state simply
+	// having been cleared, so they don't show a block-reason popup on sign-out.
+	bool isLoggingOut() const;
+
 	std::string getApiToken() const;
 	std::string getOrgName() const;
 	std::string getOrgId() const;
 	std::string getUserEmail() const;
 	std::string getUserName() const;
+
+	// Empty when the org is not blocked; otherwise one of the BLOCK_REASON_* values (or an
+	// unrecognized server-provided reason string).
+	std::string getBlockReason() const;
 
 	// Register/unregister callbacks fired when auth state changes.
 	// Callbacks may be called from the background poll thread.
@@ -84,6 +96,13 @@ private:
 	void clearAuth();
 	void notifyCallbacks();
 
+	// Periodically polls /token_status while authenticated to detect a block_reason
+	// (e.g. the OBS trial ending) without requiring the user to restart the plugin.
+	void startStatusCheckLoop();
+	void stopStatusCheckLoop();
+	void runStatusCheckLoop();
+	void setBlockReason(const std::string &reason);
+
 	static std::string generateSessionId();
 	static std::string httpGet(const std::string &url);
 	static std::string httpPost(const std::string &url, const std::string &jsonBody);
@@ -93,17 +112,22 @@ private:
 	static constexpr const char *LOGIN_URL = "https://platform.bria.ai/plugin-login";
 	static constexpr int POLL_INTERVAL_MS = 2000;
 	static constexpr int MAX_CONSECUTIVE_ERRORS = 30;
+	static constexpr int STATUS_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 	mutable std::mutex stateMutex_;
 	AuthData authData_;
 	std::string sessionId_;
 	std::string encryptedToken_;
+	std::string blockReason_;
 
 	std::atomic<bool> authenticated_{false};
 	std::atomic<bool> checkingAuth_{false};
 	std::atomic<bool> stopPoll_{false};
+	std::atomic<bool> stopStatusCheck_{false};
+	std::atomic<bool> loggingOut_{false};
 
 	std::thread pollThread_;
+	std::thread statusCheckThread_;
 
 	std::mutex callbackMutex_;
 	std::unordered_map<CallbackHandle, Callback> callbacks_;
