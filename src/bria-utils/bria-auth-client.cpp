@@ -186,6 +186,12 @@ std::string BriaAuthClient::getBlockReason() const
 	return blockReason_;
 }
 
+std::string BriaAuthClient::getBlockNotes() const
+{
+	std::lock_guard<std::mutex> lock(stateMutex_);
+	return blockNotes_;
+}
+
 bool BriaAuthClient::isLoggingOut() const
 {
 	return loggingOut_.load();
@@ -405,6 +411,7 @@ void BriaAuthClient::runStatusCheckLoop()
 		const std::string resp = httpGet(url);
 		if (!resp.empty()) {
 			setBlockReason(extractJsonString(resp, "block_reason"));
+			setBlockNotes(extractJsonString(resp, "block_notes"));
 		}
 
 		for (int waited = 0; waited < STATUS_CHECK_INTERVAL_MS && !stopStatusCheck_.load(); waited += 200) {
@@ -430,6 +437,7 @@ bool BriaAuthClient::pollOnce(const std::string &sessionId, std::string &outEncT
 	if (!token.empty()) {
 		outEncToken = token;
 		setBlockReason(extractJsonString(resp, "block_reason"));
+		setBlockNotes(extractJsonString(resp, "block_notes"));
 		return true;
 	}
 
@@ -458,6 +466,7 @@ bool BriaAuthClient::renewTokenRequest(const std::string &sessionId, const std::
 
 	outEncToken = newToken;
 	setBlockReason(extractJsonString(resp, "block_reason"));
+	setBlockNotes(extractJsonString(resp, "block_notes"));
 	return true;
 }
 
@@ -618,6 +627,12 @@ void BriaAuthClient::setBlockReason(const std::string &reason)
 	}
 }
 
+void BriaAuthClient::setBlockNotes(const std::string &notes)
+{
+	std::lock_guard<std::mutex> lock(stateMutex_);
+	blockNotes_ = notes;
+}
+
 void BriaAuthClient::setCheckingAuth(bool checking)
 {
 	checkingAuth_.store(checking);
@@ -630,6 +645,7 @@ void BriaAuthClient::clearAuth()
 		authData_ = {};
 		encryptedToken_.clear();
 		blockReason_.clear();
+		blockNotes_.clear();
 		authenticated_.store(false);
 		checkingAuth_.store(false);
 	}

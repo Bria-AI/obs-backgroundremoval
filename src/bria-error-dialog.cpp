@@ -4,6 +4,7 @@
 
 #include "bria-error-dialog.h"
 #include "bria-analytics.hpp"
+#include "bria-utils/bria-auth-client.hpp"
 
 #include <obs-module.h>
 #include <obs-frontend-api.h>
@@ -59,7 +60,23 @@ extern "C" void bria_show_error_dialog(BriaCloseReason reason, const std::string
 
 	// Prefer the server's own detailed message (e.g. a specific
 	// quota-exceeded explanation) over our generic per-reason text.
-	const std::string text = serverMessage.empty() ? obs_module_text(msgKey) : serverMessage;
+	std::string text = serverMessage.empty() ? obs_module_text(msgKey) : serverMessage;
+
+	// The locale string's link defaults to utm_content=trial_end; swap in
+	// utm_content=usage_limit when the platform's block_notes say this org was
+	// actually blocked for hitting the usage cap, not for the 14-day trial ending —
+	// so the landing page can tell the two lead sources apart.
+	if (reason == BriaCloseReason::SubscriptionLimitsReached) {
+		const std::string blockNotes = BriaAuthClient::instance().getBlockNotes();
+		if (blockNotes.rfind("streaming_usage_limit", 0) == 0) {
+			const std::string from = "utm_content=trial_end";
+			const std::string to = "utm_content=usage_limit";
+			const size_t pos = text.find(from);
+			if (pos != std::string::npos) {
+				text.replace(pos, from.size(), to);
+			}
+		}
+	}
 
 	QMainWindow *main = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 
