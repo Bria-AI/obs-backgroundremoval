@@ -67,6 +67,11 @@ public:
 	// unrecognized server-provided reason string).
 	std::string getBlockReason() const;
 
+	// Free-form detail alongside getBlockReason() (e.g. "streaming_usage_limit:15003s" or
+	// "trial_period_ended" for BLOCK_REASON_PASSED_SUBSCRIPTION_LIMITS) — see
+	// obs_trial_limit_job/main.py for where the platform sets this. Empty when unknown.
+	std::string getBlockNotes() const;
+
 	// Register/unregister callbacks fired when auth state changes.
 	// Callbacks may be called from the background poll thread.
 	using Callback = std::function<void()>;
@@ -102,6 +107,7 @@ private:
 	void stopStatusCheckLoop();
 	void runStatusCheckLoop();
 	void setBlockReason(const std::string &reason);
+	void setBlockNotes(const std::string &notes);
 
 	static std::string generateSessionId();
 	static std::string httpGet(const std::string &url);
@@ -119,6 +125,7 @@ private:
 	std::string sessionId_;
 	std::string encryptedToken_;
 	std::string blockReason_;
+	std::string blockNotes_;
 
 	std::atomic<bool> authenticated_{false};
 	std::atomic<bool> checkingAuth_{false};
