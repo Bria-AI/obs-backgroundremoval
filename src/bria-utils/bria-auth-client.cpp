@@ -13,6 +13,7 @@
 
 #include <mbedtls/aes.h>
 #include <mbedtls/base64.h>
+#include <mbedtls/md.h>
 #include <mbedtls/sha256.h>
 
 #include <curl/curl.h>
@@ -75,6 +76,7 @@ void BriaAuthClient::startLoginFlow()
 	stopStatusCheckLoop();
 
 	const std::string sessionId = generateSessionId();
+	const std::string proof = signSessionId(sessionId);
 
 	{
 		std::lock_guard<std::mutex> lock(stateMutex_);
@@ -87,7 +89,7 @@ void BriaAuthClient::startLoginFlow()
 	saveToConfig();
 	notifyCallbacks();
 
-	openSystemBrowser(std::string(LOGIN_URL) + "?pluginAuthId=" + sessionId);
+	openSystemBrowser(std::string(LOGIN_URL) + "?pluginAuthId=" + sessionId + "&pluginAuthProof=" + proof);
 
 	pollThread_ = std::thread(&BriaAuthClient::runPollLoop, this, sessionId);
 }
@@ -675,6 +677,30 @@ std::string BriaAuthClient::generateSessionId()
 	snprintf(buf, sizeof(buf), "obs-%08llx%08llx", static_cast<unsigned long long>(now & 0xFFFFFFFF),
 		 static_cast<unsigned long long>(id));
 	return buf;
+}
+
+std::string BriaAuthClient::signSessionId(const std::string &sessionId)
+{
+#ifndef BRIA_SSO_SECRET
+#error "BRIA_SSO_SECRET must be defined at compile time. Set the BRIA_SSO_SECRET env var before running cmake."
+#endif
+	static const char secret[] = BRIA_SSO_SECRET;
+	uint8_t key[32];
+	mbedtls_sha256(reinterpret_cast<const uint8_t *>(secret), sizeof(secret) - 1, key, 0);
+
+	uint8_t hmac[32];
+	const mbedtls_md_info_t *mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+	mbedtls_md_hmac(mdInfo, key, sizeof(key), reinterpret_cast<const uint8_t *>(sessionId.data()), sessionId.size(),
+			hmac);
+
+	static const char hexChars[] = "0123456789abcdef";
+	std::string hex;
+	hex.reserve(sizeof(hmac) * 2);
+	for (uint8_t b : hmac) {
+		hex += hexChars[b >> 4];
+		hex += hexChars[b & 0x0F];
+	}
+	return hex;
 }
 
 void BriaAuthClient::openSystemBrowser(const std::string &url)

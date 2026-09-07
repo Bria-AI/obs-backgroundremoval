@@ -15,8 +15,8 @@
 /**
  * Manages Bria SSO authentication for the plugin.
  *
- *   1. generateSessionId()  →  obs-<random>
- *   2. Open https://platform.bria.ai/plugin-login?pluginAuthId=<id> in system browser
+ *   1. generateSessionId()  →  obs-<random>, signSessionId()  →  HMAC-SHA256 proof
+ *   2. Open https://platform.bria.ai/plugin-login?pluginAuthId=<id>&pluginAuthProof=<proof> in system browser
  *   3. Poll https://platform-api.bria.ai/plugins/auth/token_status every 2 s
  *   4. On success: AES-256-CBC decrypt
  *   5. Parse JSON → extract api_token, org_name, user_email
@@ -110,6 +110,10 @@ private:
 	void setBlockNotes(const std::string &notes);
 
 	static std::string generateSessionId();
+	// HMAC-SHA256(BRIA_SSO_SECRET, sessionId), hex-encoded. Lets the backend verify a
+	// signup actually came from this plugin binary before exempting it from the Free
+	// Tier signup rate limit -- sessionId alone is unauthenticated client input.
+	static std::string signSessionId(const std::string &sessionId);
 	static std::string httpGet(const std::string &url);
 	static std::string httpPost(const std::string &url, const std::string &jsonBody);
 	static std::string extractJsonString(const std::string &json, const std::string &key);
