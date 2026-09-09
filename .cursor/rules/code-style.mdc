@@ -1,0 +1,6 @@
+---
+description: Code style — clang-format, gersemi, REUSE/SPDX, preset builds, Conventional Commits
+alwaysApply: true
+---
+
+@.agents/rules/code-style.md
