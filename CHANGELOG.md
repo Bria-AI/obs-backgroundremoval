@@ -8,6 +8,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0](https://github.com/Bria-AI/obs-backgroundremoval/compare/v0.2.0...v0.3.0) (2026-09-09)
+
+
+### Features
+
+* BLD-123 ([#35](https://github.com/Bria-AI/obs-backgroundremoval/issues/35)) ([ec57e48](https://github.com/Bria-AI/obs-backgroundremoval/commit/ec57e48262399cdce1ad04ad969df5c4e7675ec0))
+
 ## [0.2.0](https://github.com/Bria-AI/obs-backgroundremoval/compare/v0.1.4...v0.2.0) (2026-08-31)
 
 
