@@ -10,6 +10,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 
+> ⚠️ **Discontinued — this plugin has been retired.**
+>
+> Bria has retired the OBS background-removal plugin. New sign-ins and free trials are
+> closed, and the streaming service the plugin depends on has been switched off.
+> Existing installations no longer remove backgrounds and will show a "discontinued"
+> message. This repository is archived and is kept for reference only. Tracking: INFRA-132.
+
+---
+
 ## Overview
 
 The **Bria V-RMBG 3.0 OBS Plugin** adds a native Effect Filter to OBS Studio that removes your video background in streaming using Bria's V-RMBG 3.0 model. Your webcam frames are streamed to Bria's inference endpoint, returned background-removed, and rendered directly into your OBS scene - no green screen, no local GPU processing required.
