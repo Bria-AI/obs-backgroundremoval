@@ -10,13 +10,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 
-> ⚠️ **Deprecated — this plugin is being discontinued.**
+> ⚠️ **Discontinued — this plugin has been retired.**
 >
-> Bria is retiring the OBS background-removal plugin. New sign-ins and free trials are
-> closing, and the streaming service the plugin depends on will be switched off on an
-> upcoming sunset date. After that date, existing installations will stop removing
-> backgrounds and will show a "discontinued" message. Please don't rely on this plugin
-> for production streams going forward. Tracking: INFRA-132.
+> Bria has retired the OBS background-removal plugin. New sign-ins and free trials are
+> closed, and the streaming service the plugin depends on has been switched off.
+> Existing installations no longer remove backgrounds and will show a "discontinued"
+> message. This repository is archived and is kept for reference only. Tracking: INFRA-132.
 
 ---
 
